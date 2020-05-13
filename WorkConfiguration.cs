@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-// using System.Text; редактирование
-using System.Windows.Forms;
+// using System.Text;
+// using System.Windows.Forms;
 
 namespace FarSync2
 {
     public enum Statuses : byte
     {
-        DontRead,
-        Change,
-        Save
+        DontRead,   // файл конфигурации не прочитан
+        Change,     // файл нуждается в сохранении
+        Save        // файл сохранен
     }
 
     [Serializable]
@@ -35,6 +35,7 @@ namespace FarSync2
 
         public List<ElementFilesTree> ListElementsFilesTree;  // список файлов источника, приёмника и изменений
 
+        // основной класс
         public WorkConfiguration()
         {
             PathFileConfiguration = MainForm.TextNoChoice;

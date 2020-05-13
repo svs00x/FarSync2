@@ -18,16 +18,16 @@ namespace FarSync2
     {
         public bool IsSource;   // Тип элемента: true - источник; false - приемник
         public bool IsFile;     // Файл - Да, Директория - Нет
-        public string Path;     // путь к элементу, без пути к узлу и без имени файла
-        public string NameExt;  // имя элемента + расширение
+        public string Path;     // путь к элементу, без пути к узлу и без имени файла (D:\Root\ + First\Dir\ + filename.ext)
+        public string NameExt;  // имя элемента + расширение (filename.ext)
         public DateTime LastWriteTime;   // Время изменения элемента
         public long Length;       // Размер файла
         public string PathOut;  // Путь куда положить
         public Operation Act;   // Действие (перечисление)
 
-        public ElementFilesTree(bool isSourceSet, DirectoryInfo dirInf, int lengthNodePath)
+        // заполнить элемент - директория
+        public ElementFilesTree(DirectoryInfo dirInf, bool isSourceSet, int lengthNodePath)
         {
-            // заполнить элемент - директория
             IsSource = isSourceSet;
             IsFile = false;
             Path = dirInf.FullName.Substring(lengthNodePath, dirInf.FullName.Length - lengthNodePath);
@@ -38,9 +38,9 @@ namespace FarSync2
             Act = Operation.Empty;
         }
 
-        public ElementFilesTree(bool isSourceSet, FileInfo fileInf, int lengthNodePath)
+        // заполнить элемент - файл
+        public ElementFilesTree(FileInfo fileInf, bool isSourceSet, int lengthNodePath)
         {
-            // заполнить элемент - файл
             IsSource = isSourceSet;
             IsFile = true;
             Path = fileInf.FullName.Substring(lengthNodePath, fileInf.FullName.Length - lengthNodePath - fileInf.Name.Length);
@@ -51,9 +51,9 @@ namespace FarSync2
             Act = Operation.Empty;
         }
 
-        public ElementFilesTree(bool isSourceSet, string pathName, int lengthNodePath)
+        // заполнить элемент - ошибка чтения
+        public ElementFilesTree(string pathName, bool isSourceSet, int lengthNodePath)
         {
-            // заполнить элемент - ошибка чтения
             IsSource = isSourceSet;
             IsFile = false;
             Path = pathName.Substring(lengthNodePath);
@@ -63,7 +63,8 @@ namespace FarSync2
             Act = Operation.Empty;
         }
 
-        public string GetAsCSV(bool isHeader)   // вывести элемент в формате файла CSV
+        // вывести элемент в формате файла CSV
+        public string GetAsCSV(bool isHeader)
         {
             string ansKey;
             if (isHeader)
