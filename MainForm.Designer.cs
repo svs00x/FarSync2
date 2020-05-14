@@ -130,7 +130,7 @@
             this.uxbtnConfigFileSaveAs.TabIndex = 1;
             this.uxbtnConfigFileSaveAs.Text = "как...";
             this.uxbtnConfigFileSaveAs.UseVisualStyleBackColor = true;
-            this.uxbtnConfigFileSaveAs.Click += new System.EventHandler(this.uxbtnConfigFileSaveAs_Click);
+            this.uxbtnConfigFileSaveAs.Click += new System.EventHandler(this.UxbtnConfigFileSaveAs_Click);
             // 
             // uxbtnLogFileDelete
             // 
@@ -140,7 +140,7 @@
             this.uxbtnLogFileDelete.TabIndex = 1;
             this.uxbtnLogFileDelete.Text = "Удалить";
             this.uxbtnLogFileDelete.UseVisualStyleBackColor = true;
-            this.uxbtnLogFileDelete.Click += new System.EventHandler(this.uxbtnLogFileDelete_Click);
+            this.uxbtnLogFileDelete.Click += new System.EventHandler(this.UxbtnLogFileDelete_Click);
             // 
             // uxbtnConfigFileSave
             // 
@@ -150,7 +150,7 @@
             this.uxbtnConfigFileSave.TabIndex = 1;
             this.uxbtnConfigFileSave.Text = "Сохранить";
             this.uxbtnConfigFileSave.UseVisualStyleBackColor = true;
-            this.uxbtnConfigFileSave.Click += new System.EventHandler(this.uxbtnConfigFileSave_Click);
+            this.uxbtnConfigFileSave.Click += new System.EventHandler(this.UxbtnConfigFileSave_Click);
             // 
             // uxbtnLogFileShow
             // 
@@ -160,7 +160,7 @@
             this.uxbtnLogFileShow.TabIndex = 1;
             this.uxbtnLogFileShow.Text = "Показать";
             this.uxbtnLogFileShow.UseVisualStyleBackColor = true;
-            this.uxbtnLogFileShow.Click += new System.EventHandler(this.uxbtnLogFileShow_Click);
+            this.uxbtnLogFileShow.Click += new System.EventHandler(this.UxbtnLogFileShow_Click);
             // 
             // uxbtnConfigFileOpen
             // 
@@ -170,7 +170,7 @@
             this.uxbtnConfigFileOpen.TabIndex = 1;
             this.uxbtnConfigFileOpen.Text = "Открыть";
             this.uxbtnConfigFileOpen.UseVisualStyleBackColor = true;
-            this.uxbtnConfigFileOpen.Click += new System.EventHandler(this.uxbtnConfigFileOpen_Click);
+            this.uxbtnConfigFileOpen.Click += new System.EventHandler(this.UxbtnConfigFileOpen_Click);
             // 
             // groupBox2
             // 
@@ -204,7 +204,7 @@
             this.uxbtnExportCSV.TabIndex = 1;
             this.uxbtnExportCSV.Text = "Экспорт";
             this.uxbtnExportCSV.UseVisualStyleBackColor = true;
-            this.uxbtnExportCSV.Click += new System.EventHandler(this.uxbtnExportCSV_Click);
+            this.uxbtnExportCSV.Click += new System.EventHandler(this.UxbtnExportCSV_Click);
             // 
             // uxbtnDifferenceDownload
             // 
@@ -223,7 +223,7 @@
             this.uxbtnDifferenceFind.TabIndex = 1;
             this.uxbtnDifferenceFind.Text = "Обработать";
             this.uxbtnDifferenceFind.UseVisualStyleBackColor = true;
-            this.uxbtnDifferenceFind.Click += new System.EventHandler(this.uxbtnDifferenceFind_Click);
+            this.uxbtnDifferenceFind.Click += new System.EventHandler(this.UxbtnDifferenceFind_Click);
             // 
             // uxlblPathDifference
             // 
@@ -269,7 +269,7 @@
             this.uxbtnDestinationPathRead.TabIndex = 1;
             this.uxbtnDestinationPathRead.Text = "Считать";
             this.uxbtnDestinationPathRead.UseVisualStyleBackColor = true;
-            this.uxbtnDestinationPathRead.Click += new System.EventHandler(this.uxbtnDestinationPathRead_Click);
+            this.uxbtnDestinationPathRead.Click += new System.EventHandler(this.UxbtnDestinationPathRead_Click);
             // 
             // uxbtnSourcePathRead
             // 
@@ -279,7 +279,7 @@
             this.uxbtnSourcePathRead.TabIndex = 1;
             this.uxbtnSourcePathRead.Text = "Считать";
             this.uxbtnSourcePathRead.UseVisualStyleBackColor = true;
-            this.uxbtnSourcePathRead.Click += new System.EventHandler(this.uxbtnSourcePathRead_Click);
+            this.uxbtnSourcePathRead.Click += new System.EventHandler(this.UxbtnSourcePathRead_Click);
             // 
             // uxbtnDifferencePathSet
             // 
@@ -289,7 +289,7 @@
             this.uxbtnDifferencePathSet.TabIndex = 1;
             this.uxbtnDifferencePathSet.Text = "Выбрать";
             this.uxbtnDifferencePathSet.UseVisualStyleBackColor = true;
-            this.uxbtnDifferencePathSet.Click += new System.EventHandler(this.uxbtnDifferencePathSet_Click);
+            this.uxbtnDifferencePathSet.Click += new System.EventHandler(this.UxbtnDifferencePathSet_Click);
             // 
             // uxbtnDestinationPathSet
             // 
@@ -299,7 +299,7 @@
             this.uxbtnDestinationPathSet.TabIndex = 1;
             this.uxbtnDestinationPathSet.Text = "Выбрать";
             this.uxbtnDestinationPathSet.UseVisualStyleBackColor = true;
-            this.uxbtnDestinationPathSet.Click += new System.EventHandler(this.uxbtnDestinationPathSet_Click);
+            this.uxbtnDestinationPathSet.Click += new System.EventHandler(this.UxbtnDestinationPathSet_Click);
             // 
             // uxbtnSourcePathSet
             // 
@@ -309,7 +309,7 @@
             this.uxbtnSourcePathSet.TabIndex = 1;
             this.uxbtnSourcePathSet.Text = "Выбрать";
             this.uxbtnSourcePathSet.UseVisualStyleBackColor = true;
-            this.uxbtnSourcePathSet.Click += new System.EventHandler(this.uxbtnSourcePathSet_Click);
+            this.uxbtnSourcePathSet.Click += new System.EventHandler(this.UxbtnSourcePathSet_Click);
             // 
             // label5
             // 
@@ -383,7 +383,7 @@
             this.uxbtnExit.TabIndex = 1;
             this.uxbtnExit.Text = "Закончить программу";
             this.uxbtnExit.UseVisualStyleBackColor = true;
-            this.uxbtnExit.Click += new System.EventHandler(this.uxbtnExit_Click);
+            this.uxbtnExit.Click += new System.EventHandler(this.UxbtnExit_Click);
             // 
             // openFileDialog1
             // 

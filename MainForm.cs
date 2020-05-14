@@ -150,12 +150,11 @@ namespace FarSync2
         private void ShowProgress(int valCur, int valMax)
         {
             uxproInfoProcent.Minimum = 0;
-            double curProcent = 0;
             if ((valMax > 0) && (valCur > 0))
             {
                 uxproInfoProcent.Maximum = valMax;
                 uxproInfoProcent.Value = valCur;
-                curProcent = (double)valCur / (double)valMax;
+                double curProcent = (double)valCur / (double)valMax;
                 uxlblInfoProcent.Text = curProcent.ToString("P2");
             }
             else
@@ -176,8 +175,6 @@ namespace FarSync2
 
             double lowBound, upBound; // нижняя и верхняя границы для текущей папки для вывода линии прогресса
             double stepProgress; // шаг для вывода линии прогресса
-            string[] directories, files;   // список файлов и директорий в обрабатываемой папке
-            int countElementes = 0;    // количество файлов и директорий в обрабатываемой папке
 
             if (Directory.Exists(path) == true)
             {
@@ -186,9 +183,9 @@ namespace FarSync2
 
                 try
                 {
-                    directories = Directory.GetDirectories(path);
-                    files = Directory.GetFiles(path);
-                    countElementes = directories.Count(); // количество директорий в обрабатываемой папке
+                    string[] directories = Directory.GetDirectories(path);      // список файлов и директорий в обрабатываемой папке
+                    string[] files = Directory.GetFiles(path);                  // список файлов и директорий в обрабатываемой папке
+                    int countElementes = directories.Count();    // количество файлов и директорий в обрабатываемой папке
                     countElementes += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
                     if (countElementes == 0)
                         ShowProgress(maxBound, MaxProgress);  // в обрабатываемой директории нет ни файлов ни папок
@@ -280,7 +277,7 @@ namespace FarSync2
         }
 
         // выбрать файл конфигурации. !!!!!!!!!!!!!!!! можно разложить предыдущий конфигурационный файл на путь и имя !!!!!!!!!!!!!
-        private void uxbtnConfigFileOpen_Click(object sender, EventArgs e)
+        private void UxbtnConfigFileOpen_Click(object sender, EventArgs e)
         {
             openFileDialog1.Title = "Считать файл конфигурации";
             openFileDialog1.Filter = "config files (*.cfg)|*.cfg|All files (*.*)|*.*";
@@ -312,14 +309,14 @@ namespace FarSync2
         }
 
         // сохранить файл конфигурации
-        private void uxbtnConfigFileSave_Click(object sender, EventArgs e)
+        private void UxbtnConfigFileSave_Click(object sender, EventArgs e)
         {
             SaveConfiguration();
             UpdateWindow();
         }
 
         // сохранить файл конфигурации с другим именем
-        private void uxbtnConfigFileSaveAs_Click(object sender, EventArgs e)
+        private void UxbtnConfigFileSaveAs_Click(object sender, EventArgs e)
         {
             saveFileDialog1.Title = "Сохранить файл конфигурации";
             saveFileDialog1.InitialDirectory = PathDefault;
@@ -339,7 +336,7 @@ namespace FarSync2
         }
 
         // просмотреть лог файл
-        private void uxbtnLogFileShow_Click(object sender, EventArgs e)
+        private void UxbtnLogFileShow_Click(object sender, EventArgs e)
         {
             FileInfo fileInf = new FileInfo(PathFileLog);
             if (fileInf.Exists)
@@ -349,7 +346,7 @@ namespace FarSync2
         }
 
         // удалить лог файл
-        private void uxbtnLogFileDelete_Click(object sender, EventArgs e)
+        private void UxbtnLogFileDelete_Click(object sender, EventArgs e)
         {
             bool success = DeleteFile(PathFileLog);
             if (success)
@@ -362,7 +359,7 @@ namespace FarSync2
         }
 
         // выбрать директорию для всех типов (источник, приемник, разница)
-        private void setDirectory(int indexDirectory)
+        private void SetDirectory(int indexDirectory)
         {
             // 0 = source; 1 - destinition; 2 - difference
             string [] oldPath = new string[3] {MainConfiguration.PathSource, MainConfiguration.PathDestination, MainConfiguration.PathDifference };
@@ -408,28 +405,28 @@ namespace FarSync2
         }
 
         // выбрать путь к источнику
-        private void uxbtnSourcePathSet_Click(object sender, EventArgs e)
+        private void UxbtnSourcePathSet_Click(object sender, EventArgs e)
         {
-            setDirectory(0);
+            SetDirectory(0);
         }
 
         // выбрать путь к приемнику
-        private void uxbtnDestinationPathSet_Click(object sender, EventArgs e)
+        private void UxbtnDestinationPathSet_Click(object sender, EventArgs e)
         {
-            setDirectory(1);
+            SetDirectory(1);
         }
 
         // выбрать путь к разнице
-        private void uxbtnDifferencePathSet_Click(object sender, EventArgs e)
+        private void UxbtnDifferencePathSet_Click(object sender, EventArgs e)
         {
-            setDirectory(2);
+            SetDirectory(2);
         }
 
         // прочитать директорию источник
-        private void uxbtnSourcePathRead_Click(object sender, EventArgs e)
+        private void UxbtnSourcePathRead_Click(object sender, EventArgs e)
         {
             if (MainConfiguration.HavePathSource == false)
-                uxbtnSourcePathSet_Click(sender, e);    // если путь источник не выбран, то попробовать его выбрать
+                UxbtnSourcePathSet_Click(sender, e);    // если путь источник не выбран, то попробовать его выбрать
             if (MainConfiguration.HavePathSource)
             {
                 bool isReadDirectory = FillDirectory(MainConfiguration.PathSource, true);
@@ -443,10 +440,10 @@ namespace FarSync2
         }
 
         // прочитать директорию приёмник
-        private void uxbtnDestinationPathRead_Click(object sender, EventArgs e)
+        private void UxbtnDestinationPathRead_Click(object sender, EventArgs e)
         {
             if (MainConfiguration.HavePathDestination == false)
-                uxbtnDestinationPathSet_Click(sender, e);   // если путь приемник не выбран, то попробовать его выбрать
+                UxbtnDestinationPathSet_Click(sender, e);   // если путь приемник не выбран, то попробовать его выбрать
             if (MainConfiguration.HavePathDestination)
             {
                 bool isReadDirectory = FillDirectory(MainConfiguration.PathDestination, false);
@@ -460,7 +457,7 @@ namespace FarSync2
         }
 
         // экспортировать прочитанные каталоги в CSV файл для анализа
-        private void uxbtnExportCSV_Click(object sender, EventArgs e)
+        private void UxbtnExportCSV_Click(object sender, EventArgs e)
         {
             if (MainConfiguration.ListElementsFilesTree.Count > 0)
             {
@@ -494,7 +491,7 @@ namespace FarSync2
         }
 
         // найти различия в директориях
-        private void uxbtnDifferenceFind_Click(object sender, EventArgs e)
+        private void UxbtnDifferenceFind_Click(object sender, EventArgs e)
         {
             SortElements();
             MainConfiguration.DoesDifferenceFind = true;
@@ -503,7 +500,7 @@ namespace FarSync2
         }
 
         // выход из программы
-        private void checkExit(bool needExit)
+        private void CheckExit(bool needExit)
         {
             bool canExit = true;
             if (MainConfiguration.Status != Statuses.Save)
@@ -526,16 +523,17 @@ namespace FarSync2
                 Environment.Exit(0);
         }
 
-        private void uxbtnExit_Click(object sender, EventArgs e)
+        private void UxbtnExit_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show("Хотите закончить программу?", "Вопрос", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
             if (result == DialogResult.Yes)
-                checkExit( true );
+                CheckExit( true );
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            checkExit( false );
+            CheckExit( false );
         }
+
     }
 }
