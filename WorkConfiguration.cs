@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-// using System.Text; редактирование
-using System.Windows.Forms;
 
 namespace FarSync2
 {
