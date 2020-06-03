@@ -153,7 +153,7 @@ namespace FarSync2
             if ((valMax > 0) && (valCur > 0))
             {
                 uxproInfoProcent.Maximum = valMax;
-                uxproInfoProcent.Value = valCur;
+                uxproInfoProcent.Value = (valMax > valCur) ? valCur : valMax;   // защита от ошибки, если текущий процент больше 100%
                 double curProcent = (double)valCur / (double)valMax;
                 uxlblInfoProcent.Text = curProcent.ToString("P2");
             }
@@ -193,14 +193,17 @@ namespace FarSync2
                     {
                         stepProgress = (maxBound - minBound) / countElementes;    // размер одного шага для прогресса
                         lowBound = minBound;
-                        upBound = lowBound + stepProgress;
-                        ShowProgress((int)Math.Round(upBound), MaxProgress);  // прогресс в один шаг для всех файлов
-
-                        foreach (string file in files)
+                        upBound = minBound;
+                        if( files.Count() > 0)
                         {
-                            FileInfo fileInf = new FileInfo(file);     // считать аттрибуты файла
-                            if (fileInf.Exists)
-                                MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(fileInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
+                            foreach (string file in files)
+                            {
+                                FileInfo fileInf = new FileInfo(file);     // считать аттрибуты файла
+                                if (fileInf.Exists)
+                                    MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(fileInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
+                            }
+                            upBound = lowBound + stepProgress;
+                            ShowProgress((int)Math.Round(upBound), MaxProgress);  // прогресс в один шаг для всех файлов
                         }
 
                         foreach (string directory in directories)
