@@ -58,11 +58,20 @@ namespace FarSync2
             Status = Statuses.DontRead;
         }
 
-        // сравнить два элемента списка: -1 i меньше j; 0 равны; 1 i больше j
-        // deep = 0 это базовый уровень (flagDir + lSize + dElement + sElement); (lSize + dElement) только для файлов
-        // deep = 1 это дополнительное сравнение к базовому
-        // для папки добавляется sPath + (источник | приемник)
-        // для файла добавляется (источник | приемник) + sPath
+        // сравнить два элемента списка
+        // на входе 2 индекса сравнения и глубина сравнения:
+        // compareDeep = 0 для директорий выдаст результат, только если сравнивать с файлом
+        // compareDeep = 0 это базовый уровень, только для файлов имя, с расширением + размер + дата и время изменения
+        // compareDeep = 1 это средний уровень, к базовому уровню добавляется относительный путь
+        // compareDeep = 2 это максимальный уровень, к среднему уровню добавляется относительный путь
+        // на выходе:
+        // 0 - одинаковы, такого быть не может
+        // 1 - различаются только источник - приемник
+        // 2 - различаются пути (дальше не проверялось)
+        // 3 - различаются имена с расширением
+        // 4 - различаются время файла
+        // 5 - различаются длины
+        // 6 - различаются директория и файл
         public int CompareElementsFilesTree(int i, int j)
         {
             TimeSpan lastWriteTimeDifference;
@@ -72,7 +81,7 @@ namespace FarSync2
             if (ListElementsFilesTree[i].IsFile != ListElementsFilesTree[j].IsFile)
             {
                 // один элемент файл, другой директория
-                result = (ListElementsFilesTree[i].IsFile) ? 1 : -1;
+                result = (ListElementsFilesTree[i].IsFile) ? 6 : -6;
             }
             else
             {
@@ -83,30 +92,22 @@ namespace FarSync2
                     {
                         // размеры файлов совпали, сравнить время файлов
                         lastWriteTimeDifference = ListElementsFilesTree[i].LastWriteTime - ListElementsFilesTree[j].LastWriteTime;
-                        result = (lastWriteTimeDifference.TotalDays == 0) ? 0 : (lastWriteTimeDifference.TotalDays < 0) ? -1 : 1;
+                        result = (lastWriteTimeDifference.TotalDays == 0) ? 0 : (lastWriteTimeDifference.TotalDays < 0) ? -4 : 4;
                     }
                     else
-                        result = (lengthDifference < 0) ? -1 : 1;
-                }
-                if (result == 0) // пока сходится, проверяем строки: имя, относительный путь, источник
-                {
-                    result = string.Compare(ListElementsFilesTree[i].NameExt, ListElementsFilesTree[j].NameExt);
-                    if (result == 0)
+                        result = (lengthDifference < 0) ? -5 : 5;
+                    if (result == 0) // для файлов проверяем имена файлов
                     {
-                        // имена совпали, сравниваем путь и источник-приемник
-                        int resultSource = ((ListElementsFilesTree[i].IsSource) ? 1 : 2) - ((ListElementsFilesTree[j].IsSource) ? 1 : 2);
-                        int resultPath = string.Compare(ListElementsFilesTree[i].Path, ListElementsFilesTree[j].Path);
-                        if (ListElementsFilesTree[i].IsFile)
-                        {
-                            // для файлов (источник | приемник) + sPath
-                            result = (resultSource == 0) ? resultPath : resultSource;
-                        }
-                        else
-                        {
-                            // для директорий sPath + (источник | приемник)
-                            result = (resultPath == 0) ? resultSource : resultPath;
-                        }
+                        result = string.Compare(ListElementsFilesTree[i].NameExt, ListElementsFilesTree[j].NameExt);
+                        result = (result == 0) ? 0 : ((result < 0) ? -3 : 3);
                     }
+                }
+                if (result == 0) // пока сходится, проверяем относительный путь и источник
+                {
+                    result = string.Compare(ListElementsFilesTree[i].Path, ListElementsFilesTree[j].Path);
+                    result = (result == 0) ? 0 : ((result < 0) ? -2 : 2);
+                    if (result == 0)
+                        result = ((ListElementsFilesTree[i].IsSource) ? 1 : 2) - ((ListElementsFilesTree[j].IsSource) ? 1 : 2);
                 }
             }
             return result;

@@ -253,32 +253,6 @@ namespace FarSync2
             return result;
         }
 
-        // сортировать список элементов деревьев источника и приёмника
-        private void SortElements()
-        {
-            ElementFilesTree tempElement;
-            int currentElement = 0;    // текущая итеррация
-            int countElement = MainConfiguration.ListElementsFilesTree.Count - 1;
-
-            uxlblInfoWorkName.Text = "Идёт сортировка списка элементов...";
-            for (int i = 0; i < countElement; i++)
-            {
-                ShowProgress(++currentElement, countElement);
-                for (int j = i + 1; j < countElement + 1; j++)
-                {
-                    int keySort = MainConfiguration.CompareElementsFilesTree(i, j);
-                    if (keySort > 0)
-                    {
-                        tempElement = MainConfiguration.ListElementsFilesTree[i];
-                        MainConfiguration.ListElementsFilesTree[i] = MainConfiguration.ListElementsFilesTree[j];
-                        MainConfiguration.ListElementsFilesTree[j] = tempElement;
-                    }
-                }
-            }
-            uxlblInfoWorkName.Text = "Сортировка списка элементов закончена...";
-            ShowProgress(0, 0);
-        }
-
         // выбрать файл конфигурации. !!!!!!!!!!!!!!!! можно разложить предыдущий конфигурационный файл на путь и имя !!!!!!!!!!!!!
         private void UxbtnConfigFileOpen_Click(object sender, EventArgs e)
         {
@@ -476,6 +450,7 @@ namespace FarSync2
                 {
                     using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName, false, System.Text.Encoding.Default))
                     {
+                        uxlblInfoWorkName.Text = "Экспортируются данные ...";
                         int curItem = 0;
                         sw.WriteLine(MainConfiguration.ListElementsFilesTree[0].GetAsCSV(true));
                         foreach (ElementFilesTree element in MainConfiguration.ListElementsFilesTree)
@@ -493,10 +468,81 @@ namespace FarSync2
                 MessageBox.Show("Директории ещё не прочитаны", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        // сортировать список элементов деревьев источника и приёмника
+        private void SortElements()
+        {
+            ElementFilesTree tempElement;
+            int countElement = MainConfiguration.ListElementsFilesTree.Count;
+
+            uxlblInfoWorkName.Text = "Идёт сортировка списка элементов...";
+            for (int i = 0; i < countElement - 1; i++)
+            {
+                ShowProgress(i, countElement);
+                for (int j = i + 1; j < countElement; j++)
+                {
+                    int keySort = MainConfiguration.CompareElementsFilesTree(i, j); // максимальная глубина сравнения до пути и источника-приемника
+                    if (keySort > 0)
+                    {
+                        tempElement = MainConfiguration.ListElementsFilesTree[i];
+                        MainConfiguration.ListElementsFilesTree[i] = MainConfiguration.ListElementsFilesTree[j];
+                        MainConfiguration.ListElementsFilesTree[j] = tempElement;
+                    }
+                }
+            }
+            uxlblInfoWorkName.Text = "Сортировка списка элементов закончена...";
+            ShowProgress(0, 0);
+        }
+
+        private int Abs(int signValue)
+        {
+            return signValue > 0 ? signValue : -signValue;
+        }
+
+        private void SetAction()
+        {
+            int result; // результат сравнения
+            int countElement = MainConfiguration.ListElementsFilesTree.Count;
+
+            uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
+            for (int i = 0; i < countElement - 1; i++)
+            {
+                ShowProgress(i, countElement);
+                if (MainConfiguration.ListElementsFilesTree[i].IsSource == false) // если источника не было, то приемник стирается
+                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
+                else
+                {
+                    result = MainConfiguration.CompareElementsFilesTree(i, i+1); // сравнить имя с расширением, размер, время изменения, путь (всё кроме источник - приемник)
+                    if (Abs(result) < 2)
+                    {
+                        // если файлы сходятся, то этот файл приемник и он имеет те же реквизиты, что и источник
+                        MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
+                        MainConfiguration.ListElementsFilesTree[i+1].Act = Operation.Nothing;
+                        i++;    // пропускаем второй элемент (из приёмника)
+                    }
+                    else
+                    {
+                        if (Abs(result) > 2)
+                            MainConfiguration.ListElementsFilesTree[i].Act = Operation.New; // следующий файл не совпадает, значит это новый файл
+                        else
+                        {
+                            // это тот же базовый файл
+                            if (MainConfiguration.ListElementsFilesTree[i + 1].IsSource)
+                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy;
+                            else
+                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
+                        }
+                    }
+                }
+            }
+            uxlblInfoWorkName.Text = "Установка действий закончена...";
+            ShowProgress(0, 0);
+        }
+
         // найти различия в директориях
         private void UxbtnDifferenceFind_Click(object sender, EventArgs e)
         {
             SortElements();
+            SetAction();
             MainConfiguration.DoesDifferenceFind = true;
             MainConfiguration.Status = Statuses.Change;
             UpdateWindow();
