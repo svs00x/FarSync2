@@ -477,7 +477,7 @@ namespace FarSync2
             uxlblInfoWorkName.Text = "Идёт сортировка списка элементов...";
             for (int i = 0; i < countElement - 1; i++)
             {
-                ShowProgress(i, countElement);
+                ShowProgress(i, countElement - 2);
                 for (int j = i + 1; j < countElement; j++)
                 {
                     int keySort = MainConfiguration.CompareElementsFilesTree(i, j); // максимальная глубина сравнения до пути и источника-приемника
@@ -506,7 +506,7 @@ namespace FarSync2
             uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
             for (int i = 0; i < countElement - 1; i++)
             {
-                ShowProgress(i, countElement);
+                ShowProgress(i, countElement - 2);
                 if (MainConfiguration.ListElementsFilesTree[i].IsSource == false) // если источника не было, то приемник стирается
                     MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
                 else
@@ -514,22 +514,44 @@ namespace FarSync2
                     result = MainConfiguration.CompareElementsFilesTree(i, i+1); // сравнить имя с расширением, размер, время изменения, путь (всё кроме источник - приемник)
                     if (Abs(result) < 2)
                     {
-                        // если файлы сходятся, то этот файл приемник и он имеет те же реквизиты, что и источник
+                        // если файлы сходятся, то этот файл - источник и он имеет те же реквизиты, что и приемник
                         MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
                         MainConfiguration.ListElementsFilesTree[i+1].Act = Operation.Nothing;
                         i++;    // пропускаем второй элемент (из приёмника)
                     }
                     else
                     {
-                        if (Abs(result) > 2)
-                            MainConfiguration.ListElementsFilesTree[i].Act = Operation.New; // следующий файл не совпадает, значит это новый файл
+                        if (Abs(result) == 2)
+                        {
+                            // следующий файл имеет базовое совпадение, но расположен в другой директории
+                            if (MainConfiguration.ListElementsFilesTree[i + 1].IsSource)
+                            {
+                                // следующий файл источник, значит он нужен в этой папке и делаем из неё копию
+                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy;
+                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i+1].Path;
+                            }
+                            else
+                            {
+                                // следующий файл приемник, значит он не нужен в этой папке и перемещаем его
+                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
+                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i+1].Path;
+                            }    
+                        }
                         else
                         {
-                            // это тот же базовый файл
-                            if (MainConfiguration.ListElementsFilesTree[i + 1].IsSource)
-                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy;
+                            // следующий файл не совпадает как базовый, проверяем предыдущий, который может быть сохранившимся приёмником
+                            result = (i == 0) ? 10 : MainConfiguration.CompareElementsFilesTree(i, i-1); // сравнить базовое соответствие с предыдущим элементом для всех элементов, кроме первого
+                            if ( Abs(result) > 2 )
+                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.New; // предыдущий файл тоже не совпадает, значит это новый файл
                             else
-                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
+                            {
+                                // есть базовое соответствие
+                                if (MainConfiguration.ListElementsFilesTree[i-1].Act == Operation.Delete )
+                                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
+                                else
+                                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy; // предыдущий файл совпадает, значит можно скопировать
+                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i-1].Path;
+                            }
                         }
                     }
                 }
