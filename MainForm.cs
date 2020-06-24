@@ -185,13 +185,13 @@ namespace FarSync2
                 {
                     string[] directories = Directory.GetDirectories(path);      // список файлов и директорий в обрабатываемой папке
                     string[] files = Directory.GetFiles(path);                  // список файлов и директорий в обрабатываемой папке
-                    int countElementes = directories.Count();    // количество файлов и директорий в обрабатываемой папке
-                    countElementes += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
-                    if (countElementes == 0)
+                    int amountOfElementses = directories.Count();    // количество файлов и директорий в обрабатываемой папке
+                    amountOfElementses += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
+                    if (amountOfElementses == 0)
                         ShowProgress(maxBound, MaxProgress);  // в обрабатываемой директории нет ни файлов ни папок
                     else
                     {
-                        stepProgress = (maxBound - minBound) / countElementes;    // размер одного шага для прогресса
+                        stepProgress = (maxBound - minBound) / amountOfElementses;    // размер одного шага для прогресса
                         lowBound = minBound;
                         upBound = minBound;
                         if( files.Count() > 0)
@@ -472,13 +472,13 @@ namespace FarSync2
         private void SortElements()
         {
             ElementFilesTree tempElement;
-            int countElement = MainConfiguration.ListElementsFilesTree.Count;
+            int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
 
             uxlblInfoWorkName.Text = "Идёт сортировка списка элементов...";
-            for (int i = 0; i < countElement - 1; i++)
+            for (int i = 0; i < amountOfElements - 1; i++)
             {
-                ShowProgress(i, countElement - 2);
-                for (int j = i + 1; j < countElement; j++)
+                ShowProgress(i, amountOfElements - 2);
+                for (int j = i + 1; j < amountOfElements; j++)
                 {
                     int keySort = MainConfiguration.CompareElementsFilesTree(i, j); // максимальная глубина сравнения до пути и источника-приемника
                     if (keySort > 0)
@@ -493,20 +493,22 @@ namespace FarSync2
             ShowProgress(0, 0);
         }
 
+        // вернуть абсолютное значение (число по модулю)
         private int Abs(int signValue)
         {
             return signValue > 0 ? signValue : -signValue;
         }
 
+        // установить действие для каждого элемента
         private void SetAction()
         {
             int result; // результат сравнения
-            int countElement = MainConfiguration.ListElementsFilesTree.Count;
+            int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
 
             uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
-            for (int i = 0; i < countElement - 1; i++)
+            for (int i = 0; i < amountOfElements - 1; i++)
             {
-                ShowProgress(i, countElement - 2);
+                ShowProgress(i, amountOfElements - 2);
                 if (MainConfiguration.ListElementsFilesTree[i].IsSource == false) // если источника не было, то приемник стирается
                     MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
                 else
