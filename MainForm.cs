@@ -506,9 +506,9 @@ namespace FarSync2
             int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
 
             uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
-            for (int i = 0; i < amountOfElements - 1; i++)
+            for (int i = 0; i < amountOfElements-1; i++)
             {
-                ShowProgress(i, amountOfElements - 2);
+                ShowProgress(i, amountOfElements-2);
                 if (MainConfiguration.ListElementsFilesTree[i].IsSource == false) // если источника не было, то приемник стирается
                     MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
                 else
@@ -526,7 +526,7 @@ namespace FarSync2
                         if (Abs(result) == 2)
                         {
                             // следующий файл имеет базовое совпадение, но расположен в другой директории
-                            if (MainConfiguration.ListElementsFilesTree[i + 1].IsSource)
+                            if (MainConfiguration.ListElementsFilesTree[i+1].IsSource)
                             {
                                 // следующий файл источник, значит он нужен в этой папке и делаем из неё копию
                                 MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy;
