@@ -64,6 +64,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ListIndexesSameFiles.cs" />
     <Compile Include="WorkConfiguration.cs" />
     <Compile Include="ElementFilesTree.cs" />
     <Compile Include="MainForm.cs">
