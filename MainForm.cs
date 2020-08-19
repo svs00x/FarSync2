@@ -39,6 +39,17 @@ namespace FarSync2
             HaveFileLog = (fileInf.Exists) ? true : false;
 
             UpdateWindow();
+            test();
+        }
+
+        private void test()
+        {
+            ListIndexesSameFiles ListSourceIndexes = new ListIndexesSameFiles();
+            ListSourceIndexes.AddIndex(1,false);
+            ListSourceIndexes.AddIndex(3,true);
+            ListSourceIndexes.AddIndex(7,true);
+            ListSourceIndexes.ResetListIndexesSameFiles();
+            ListSourceIndexes.AddIndex(15,true);
         }
 
         // обновить все элементы диалога. Ничего больше
