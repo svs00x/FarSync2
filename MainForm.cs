@@ -515,6 +515,38 @@ namespace FarSync2
         {
             int result; // результат сравнения
             int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
+            ListIndexesSameFiles ListSourceIndexes = new ListIndexesSameFiles();
+            ListIndexesSameFiles ListDestinitionIndexes = new ListIndexesSameFiles();
+
+            uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
+            for (int i = 0; i < amountOfElements - 1; i++)
+            {
+                ShowProgress(i, amountOfElements-2);
+                result = Abs(MainConfiguration.CompareElementsFilesTree(i, i + 1)); // сравнить имя с расширением, размер, время изменения, путь (всё кроме источник - приемник)
+                if (result < 2)
+                {
+                    // если файлы сходятся, то этот файл - источник и он имеет те же реквизиты, что и приемник
+                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
+                    MainConfiguration.ListElementsFilesTree[i + 1].Act = Operation.Nothing;
+                    ListSourceIndexes.AddIndex(i, false);
+                }
+                else if (result == 2)
+                {
+
+                }
+                else
+                {
+
+                }
+            }
+            uxlblInfoWorkName.Text = "Установка действий закончена...";
+            ShowProgress(0, 0);
+        }
+
+        private void SetActionDEL()
+        {
+            int result; // результат сравнения
+            int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
 
             uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
             for (int i = 0; i < amountOfElements-1; i++)
