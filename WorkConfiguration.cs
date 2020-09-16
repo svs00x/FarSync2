@@ -66,12 +66,14 @@ namespace FarSync2
         // compareDeep = 2 это максимальный уровень, к среднему уровню добавляется относительный путь
         // на выходе:
         // 0 - одинаковы, такого быть не может
-        // 1 - различаются только источник - приемник
-        // 2 - различаются пути
-        // 3 - различаются имена с расширением
-        // 4 - различаются время файла
-        // 5 - различаются длины
-        // 6 - различаются директория и файл
+        // 1 - различаются только источник - приёмник
+        // 2 - различаются пути и один элемент источник - другой приёмник
+        // 3 - различаются пути и оба элемента источники
+        // 4 - различаются пути и оба элемента приёмники
+        // 5 - различаются имена с расширением
+        // 6 - различаются время файла
+        // 7 - различаются длины
+        // 8 - различаются директория и файл
         public int CompareElementsFilesTree(int i, int j)
         {
             TimeSpan lastWriteTimeDifference;
@@ -81,33 +83,42 @@ namespace FarSync2
             if (ListElementsFilesTree[i].IsFile != ListElementsFilesTree[j].IsFile)
             {
                 // один элемент файл, другой директория
-                result = (ListElementsFilesTree[i].IsFile) ? 6 : -6;
+                result = 8 * ( (ListElementsFilesTree[i].IsFile) ? 1 : -1 );
             }
             else
             {
                 if (ListElementsFilesTree[i].IsFile)     // для файлов сравнить длины и время
                 {
                     lengthDifference = ListElementsFilesTree[i].Length - ListElementsFilesTree[j].Length;    // сравнить размеры файлов
-                    if (lengthDifference == 0)
+                    if (lengthDifference != 0)
+                        result = 7 * ( (lengthDifference > 0) ? 1 : -1 );
+                    else
                     {
                         // размеры файлов совпали, сравнить время файлов
                         lastWriteTimeDifference = ListElementsFilesTree[i].LastWriteTime - ListElementsFilesTree[j].LastWriteTime;
-                        result = (lastWriteTimeDifference.TotalDays == 0) ? 0 : (lastWriteTimeDifference.TotalDays < 0) ? -4 : 4;
+                        result = 6 * ( (lastWriteTimeDifference.TotalDays == 0) ? 0 : (lastWriteTimeDifference.TotalDays > 0) ? 1 : -1 );
                     }
-                    else
-                        result = (lengthDifference < 0) ? -5 : 5;
                     if (result == 0) // для файлов проверяем имена файлов
                     {
                         result = string.Compare(ListElementsFilesTree[i].NameExt, ListElementsFilesTree[j].NameExt);
-                        result = (result == 0) ? 0 : ((result < 0) ? -3 : 3);
+                        result = 5 * ( (result == 0) ? 0 : ((result > 0) ? 1 : -1) );
                     }
                 }
                 if (result == 0) // пока сходится, проверяем относительный путь и источник
                 {
+                    // сравниваем источник или приёмник. Результат может быть: -1 или 0 или 1
+                    int resultIsSource = ((ListElementsFilesTree[i].IsSource) ? 1 : 2) - ((ListElementsFilesTree[j].IsSource) ? 1 : 2);
                     result = string.Compare(ListElementsFilesTree[i].Path, ListElementsFilesTree[j].Path);
-                    result = (result == 0) ? 0 : ((result < 0) ? -2 : 2);
                     if (result == 0)
-                        result = ((ListElementsFilesTree[i].IsSource) ? 1 : 2) - ((ListElementsFilesTree[j].IsSource) ? 1 : 2);
+                        result = resultIsSource; // результат может быть: -1 или 0 или 1; 0 - строки полностью совпадают - ошибка
+                    else
+                    {
+                        result = ( result > 0 ) ? 1 : -1;
+                        if (resultIsSource == 0)
+                            result *= ((ListElementsFilesTree[i].IsSource) ? 3 : 4);
+                        else
+                            result *= 2;
+                    }
                 }
             }
             return result;

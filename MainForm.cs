@@ -514,90 +514,117 @@ namespace FarSync2
         private void SetAction()
         {
             int result; // результат сравнения
+            bool isFile; // текущее сравнение файла или папки
             int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
             ListIndexesSameFiles ListSourceIndexes = new ListIndexesSameFiles();
             ListIndexesSameFiles ListDestinitionIndexes = new ListIndexesSameFiles();
 
             uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
-            for (int i = 0; i < amountOfElements - 1; i++)
+            for (int i = 0; i <= amountOfElements; i++)   // amountOfElements = 3 {0, 1, 2} => i = 0, 1, 2, <3 - нет>
             {
-                ShowProgress(i, amountOfElements-2);
-                result = Abs(MainConfiguration.CompareElementsFilesTree(i, i + 1)); // сравнить имя с расширением, размер, время изменения, путь (всё кроме источник - приемник)
-                if (result < 2)
+                ShowProgress(i, amountOfElements);
+                if (i == amountOfElements) // отсутствующий элемент
                 {
-                    // если файлы сходятся, то этот файл - источник и он имеет те же реквизиты, что и приемник
-                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
-                    MainConfiguration.ListElementsFilesTree[i + 1].Act = Operation.Nothing;
-                    ListSourceIndexes.AddIndex(i, false);
-                }
-                else if (result == 2)
-                {
-
+                    isFile = true;
+                    result = 9; // заведомо больше результата сравнения
                 }
                 else
                 {
-
+                    isFile = MainConfiguration.ListElementsFilesTree[i].IsFile;
+                    if (i == amountOfElements - 1) // последний элемент, сравнивать со следующим не нужно, просто записываем для создания пары
+                        result = (MainConfiguration.ListElementsFilesTree[i].IsSource) ? 3 : 4;
+                    else    // сравнить имя с расширением, размер, время изменения, путь
+                        result = Abs(MainConfiguration.CompareElementsFilesTree(i, i + 1));
                 }
-            }
-            uxlblInfoWorkName.Text = "Установка действий закончена...";
-            ShowProgress(0, 0);
-        }
-
-        private void SetActionDEL()
-        {
-            int result; // результат сравнения
-            int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
-
-            uxlblInfoWorkName.Text = "Идёт установка действий элементов...";
-            for (int i = 0; i < amountOfElements-1; i++)
-            {
-                ShowProgress(i, amountOfElements-2);
-                if (MainConfiguration.ListElementsFilesTree[i].IsSource == false) // если источника не было, то приемник стирается
-                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
-                else
+                if (isFile)
                 {
-                    result = MainConfiguration.CompareElementsFilesTree(i, i+1); // сравнить имя с расширением, размер, время изменения, путь (всё кроме источник - приемник)
-                    if (Abs(result) < 2)
+                    if (result == 1)
                     {
-                        // если файлы сходятся, то этот файл - источник и он имеет те же реквизиты, что и приемник
+                        // 1 - различаются только источник - приёмник
                         MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
-                        MainConfiguration.ListElementsFilesTree[i+1].Act = Operation.Nothing;
-                        i++;    // пропускаем второй элемент (из приёмника)
+                        MainConfiguration.ListElementsFilesTree[i + 1].Act = Operation.Nothing;
+                        ListDestinitionIndexes.AddIndex(i, false);  // зафиксировать, что этот базовый элемент встречался в приёмнике. Но не выставлять для связки в пару
+                    }
+                    else if (result < 9)
+                    {
+                        // выставить элемент для связки в пару
+                        if (MainConfiguration.ListElementsFilesTree[i].Act == Operation.Empty)
+                        {
+                            if (MainConfiguration.ListElementsFilesTree[i].IsSource)
+                                ListSourceIndexes.AddIndex(i, true);    // предложить для пары
+                            else
+                                ListDestinitionIndexes.AddIndex(i, true);    // предложить для пары
+                        }
+                    }
+                    if (result > 4)
+                    {
+                        // базовый элемент поменялся, запустить обработку увязки элементов для пар
+                        int indexDestinitionElement;
+                        int indexSourceElement;
+                        int j = 1; // начинаем со второго элемента, т.к. первый для копий
+                        while (j < ListSourceIndexes.AmountIndexes || j < ListDestinitionIndexes.AmountIndexes)
+                        {
+                            if (j < ListSourceIndexes.AmountIndexes && j < ListDestinitionIndexes.AmountIndexes)
+                            {
+                                // в приемнике есть свободный элемент для перемещения
+                                indexSourceElement = ListSourceIndexes.ListIndexes[j];
+                                indexDestinitionElement = ListDestinitionIndexes.ListIndexes[j];
+                                // прописываем в источнике откуда переместить файл
+                                MainConfiguration.ListElementsFilesTree[indexSourceElement].Act = Operation.Move;
+                                MainConfiguration.ListElementsFilesTree[indexSourceElement].PathOut =
+                                MainConfiguration.ListElementsFilesTree[indexDestinitionElement].Path;
+                                // прописываем в приёмнике куда переместить файл
+                                MainConfiguration.ListElementsFilesTree[indexDestinitionElement].Act = Operation.Move;
+                                MainConfiguration.ListElementsFilesTree[indexDestinitionElement].PathOut =
+                                MainConfiguration.ListElementsFilesTree[indexSourceElement].Path;
+                            }
+                            else if (j <= ListSourceIndexes.AmountIndexes)
+                            {
+                                indexSourceElement = ListSourceIndexes.ListIndexes[j];
+                                // есть потребность в файлах, а в приёмнике свободных файлов больше нет
+                                if (ListDestinitionIndexes.AmountIndexes > 0)
+                                {
+                                    // есть такой базовый файл в папке приёмника. Копируем его в нужное поле
+                                    indexDestinitionElement = ListDestinitionIndexes.ListIndexes[0];
+                                    MainConfiguration.ListElementsFilesTree[indexSourceElement].Act = Operation.Copy;
+                                    MainConfiguration.ListElementsFilesTree[indexSourceElement].PathOut =
+                                    MainConfiguration.ListElementsFilesTree[indexDestinitionElement].PathOut; // прописываем в приёмнике куда переместить файл
+                                }
+                                else
+                                {
+                                    // нет такого базового файла в папке приёмника. Создаём новый в папке переноса
+                                    MainConfiguration.ListElementsFilesTree[indexSourceElement].Act = Operation.New;
+                                }
+                            }
+                            else if (j <= ListDestinitionIndexes.AmountIndexes)
+                            {
+                                indexDestinitionElement = ListDestinitionIndexes.ListIndexes[j];
+                                MainConfiguration.ListElementsFilesTree[indexDestinitionElement].Act = Operation.Delete;
+                            }
+                            j++;
+                        }
+                        ListSourceIndexes.ResetListIndexesSameFiles();
+                        ListDestinitionIndexes.ResetListIndexesSameFiles();
+                    }
+                }
+                else
+                {
+                    // проверка для папок
+                    result = Abs(MainConfiguration.CompareElementsFilesTree(i, i + 1));
+                    if (result == 1)
+                    {
+                        // папки одинаковые ничего не делать
+                        MainConfiguration.ListElementsFilesTree[i].Act = Operation.Nothing;
+                        MainConfiguration.ListElementsFilesTree[i + 1].Act = Operation.Nothing;
+                        i++; // пропустить следующий элемент, как уже обработанный.
                     }
                     else
                     {
-                        if (Abs(result) == 2)
-                        {
-                            // следующий файл имеет базовое совпадение, но расположен в другой директории
-                            if (MainConfiguration.ListElementsFilesTree[i+1].IsSource)
-                            {
-                                // следующий файл источник, значит он нужен в этой папке и делаем из неё копию
-                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy;
-                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i+1].Path;
-                            }
-                            else
-                            {
-                                // следующий файл приемник, значит он не нужен в этой папке и перемещаем его
-                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
-                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i+1].Path;
-                            }    
-                        }
+                        // папки разные. Для источника создать новый, для приёмника удалить
+                        if (MainConfiguration.ListElementsFilesTree[i].IsSource)
+                            MainConfiguration.ListElementsFilesTree[i].Act = Operation.New;
                         else
-                        {
-                            // следующий файл не совпадает как базовый, проверяем предыдущий, который может быть сохранившимся приёмником
-                            result = (i == 0) ? 10 : MainConfiguration.CompareElementsFilesTree(i, i-1); // сравнить базовое соответствие с предыдущим элементом для всех элементов, кроме первого
-                            if ( Abs(result) > 2 )
-                                MainConfiguration.ListElementsFilesTree[i].Act = Operation.New; // предыдущий файл тоже не совпадает, значит это новый файл
-                            else
-                            {
-                                // есть базовое соответствие
-                                if (MainConfiguration.ListElementsFilesTree[i-1].Act == Operation.Delete )
-                                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Move;
-                                else
-                                    MainConfiguration.ListElementsFilesTree[i].Act = Operation.Copy; // предыдущий файл совпадает, значит можно скопировать
-                                MainConfiguration.ListElementsFilesTree[i].PathOut = MainConfiguration.ListElementsFilesTree[i-1].Path;
-                            }
-                        }
+                            MainConfiguration.ListElementsFilesTree[i].Act = Operation.Delete;
                     }
                 }
             }
@@ -609,6 +636,7 @@ namespace FarSync2
         private void UxbtnDifferenceFind_Click(object sender, EventArgs e)
         {
             SortElements();
+            MainConfiguration.ClearActElementsFilesTree();
             SetAction();
             MainConfiguration.DoesDifferenceFind = true;
             MainConfiguration.Status = Statuses.Change;
@@ -636,7 +664,7 @@ namespace FarSync2
                 }
             }
             if (needExit && canExit)
-                Environment.Exit(0);
+                Application.Exit();    // Environment.Exit(0);
         }
 
         private void UxbtnExit_Click(object sender, EventArgs e)

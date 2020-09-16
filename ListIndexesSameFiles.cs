@@ -11,16 +11,20 @@ namespace FarSync2
         public int AmountIndexes = 0;   // количество текущих индексов для одинаковых файлов, первый индекс только если не встретились другие файлы для перестановок
         public List<int> ListIndexes = new List<int>();   // список с индексами одинаковых файлов
 
-        public void AddIndex(int AddingIndex, bool NoPair)
+        // добавляет элемент для связывания в пары. Если ещё не было элементов, то добавляется нулевой элемент
+        // Параметры: добавляемый индекс; true - надо добавить элемент для пары, false - только обозначить присутствие элемента в приёмнике
+        public void AddIndex(int AddingIndex, bool AddPair)
         {
-            int count = ((AmountIndexes == 0) ? 1 : 0) + (NoPair ? 1 : 0); // записываем обязательно первый встречающийся элемент и добавляем элемент, у которого нет пары
-            for (int c = 1; c <= count; c++)
+            for (int c = 1; c < 3; c++)
             {
-                AmountIndexes++;
-                if (AmountIndexes > ListIndexes.Count)
-                    ListIndexes.Add(AddingIndex);
-                else
-                    ListIndexes[AmountIndexes-1] = AddingIndex;
+                if ( (c == 1 && AmountIndexes == 0)
+                  || (c == 2 && AddPair) )
+                {
+                    if(AmountIndexes == ListIndexes.Count)
+                        ListIndexes.Add(0);
+                    ListIndexes[AmountIndexes] = AddingIndex;
+                    AmountIndexes++;
+                }
             }
         }
 
