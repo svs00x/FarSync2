@@ -214,6 +214,7 @@
             this.uxbtnDifferenceDownload.TabIndex = 1;
             this.uxbtnDifferenceDownload.Text = "Загрузить";
             this.uxbtnDifferenceDownload.UseVisualStyleBackColor = true;
+            this.uxbtnDifferenceDownload.Click += new System.EventHandler(this.UxbtnDownload_Click);
             // 
             // uxbtnDifferenceFind
             // 
@@ -242,6 +243,7 @@
             this.uxbtnDifferenceUpload.TabIndex = 1;
             this.uxbtnDifferenceUpload.Text = "Выгрузить";
             this.uxbtnDifferenceUpload.UseVisualStyleBackColor = true;
+            this.uxbtnDifferenceUpload.Click += new System.EventHandler(this.UxbtnUpload_Click);
             // 
             // uxlblPathDestination
             // 
@@ -377,7 +379,7 @@
             // 
             // uxbtnExit
             // 
-            this.uxbtnExit.Location = new System.Drawing.Point(604, 353);
+            this.uxbtnExit.Location = new System.Drawing.Point(610, 352);
             this.uxbtnExit.Name = "uxbtnExit";
             this.uxbtnExit.Size = new System.Drawing.Size(163, 23);
             this.uxbtnExit.TabIndex = 1;
@@ -393,7 +395,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(781, 392);
+            this.ClientSize = new System.Drawing.Size(784, 390);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.uxbtnExit);
             this.Controls.Add(this.groupBox2);

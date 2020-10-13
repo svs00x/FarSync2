@@ -39,17 +39,6 @@ namespace FarSync2
             HaveFileLog = (fileInf.Exists) ? true : false;
 
             UpdateWindow();
-            test();
-        }
-
-        private void test()
-        {
-            ListIndexesSameFiles ListSourceIndexes = new ListIndexesSameFiles();
-            ListSourceIndexes.AddIndex(1,false);
-            ListSourceIndexes.AddIndex(3,true);
-            ListSourceIndexes.AddIndex(7,true);
-            ListSourceIndexes.ResetListIndexesSameFiles();
-            ListSourceIndexes.AddIndex(15,true);
         }
 
         // обновить все элементы диалога. Ничего больше
@@ -141,22 +130,6 @@ namespace FarSync2
             HaveFileLog = true;
         }
 
-        // удалить файл
-        private bool DeleteFile(string nameFile)
-        {
-            bool result = false;
-            FileInfo fileInf = new FileInfo(nameFile);
-            if (fileInf.Exists)
-            {
-                try
-                {
-                    System.IO.File.Delete(nameFile);
-                    result = true;
-                } catch {}
-            }
-            return result;
-        }
-
         // обновить полосу прогресса и вывести текущую долю выполнения
         private void ShowProgress(int valCur, int valMax)
         {
@@ -177,91 +150,6 @@ namespace FarSync2
             uxproInfoProcent.Refresh();
             uxlblInfoProcent.Refresh();
             Application.DoEvents(); // без этой строки не обновлялся прогресс бар
-        }
-
-        // узел рекурсивного процесса по чтению каталога
-        private void ReadOneDirectory(string path, bool isSource, int minBound, int maxBound)
-        {
-            const string nameProcedure = "Прочитать содержимое папки";
-
-            double lowBound, upBound; // нижняя и верхняя границы для текущей папки для вывода линии прогресса
-            double stepProgress; // шаг для вывода линии прогресса
-
-            if (Directory.Exists(path) == true)
-            {
-                uxlblInfoWorkName.Text = "Обрабатывается папка: " + path;
-                uxlblInfoWorkName.Refresh();
-
-                try
-                {
-                    string[] directories = Directory.GetDirectories(path);      // список файлов и директорий в обрабатываемой папке
-                    string[] files = Directory.GetFiles(path);                  // список файлов и директорий в обрабатываемой папке
-                    int amountOfElementses = directories.Count();    // количество файлов и директорий в обрабатываемой папке
-                    amountOfElementses += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
-                    if (amountOfElementses == 0)
-                        ShowProgress(maxBound, MaxProgress);  // в обрабатываемой директории нет ни файлов ни папок
-                    else
-                    {
-                        stepProgress = (maxBound - minBound) / amountOfElementses;    // размер одного шага для прогресса
-                        lowBound = minBound;
-                        upBound = minBound;
-                        if( files.Count() > 0)
-                        {
-                            foreach (string file in files)
-                            {
-                                FileInfo fileInf = new FileInfo(file);     // считать аттрибуты файла
-                                if (fileInf.Exists)
-                                    MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(fileInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
-                            }
-                            upBound = lowBound + stepProgress;
-                            ShowProgress((int)Math.Round(upBound), MaxProgress);  // прогресс в один шаг для всех файлов
-                        }
-
-                        foreach (string directory in directories)
-                        {
-                            DirectoryInfo dirInf = new DirectoryInfo(directory);    // считать аттрибуты директории
-                            if (dirInf.Exists)
-                            {
-                                MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(dirInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
-                                // задать нижнюю и верхнюю границы для чтения одной вложенной папки
-                                lowBound = upBound;
-                                upBound = lowBound + stepProgress;
-                                ReadOneDirectory(directory, isSource, (int)Math.Round(lowBound), (int)Math.Round(upBound));    // рекурсивный вызов чтения вложенной директории
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    WriteLogMessage(nameProcedure, "Ошибка при чтении директории: " + path);
-                    MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(path, isSource, LengthNodePath));
-                }
-
-            }
-            else
-            {
-                WriteLogMessage(nameProcedure, "Не найдена папка: " + path);
-            }
-        }
-
-        // обновить дерево в конфигурационном файле для каталога источника или приёмника (запуск рекурсивного процесса)
-        private bool FillDirectory(string path, bool isSource)
-        {
-            bool result = false;
-            if (Directory.Exists(path) == true)
-            {
-                if (MainConfiguration.ListElementsFilesTree.Count > 0)
-                    MainConfiguration.ClearElementsFilesTree(isSource); // очистить сохраненные данные папки
-                LengthNodePath = path.Length;   // длина строки пути корневого каталога
-                ReadOneDirectory(path, isSource, 0, MaxProgress);   // запуск рекурсивной функции по чтению дерева директорий
-                // вывести информацию, что процесс завершён
-                uxlblInfoWorkName.Text = "Чтение папки: <" + path + "> окончено";
-                ShowProgress(0, 0);
-                result = true;
-            }
-            else
-                MessageBox.Show("Не найдена папка <" + path + ">", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return result;
         }
 
         // выбрать файл конфигурации. !!!!!!!!!!!!!!!! можно разложить предыдущий конфигурационный файл на путь и имя !!!!!!!!!!!!!
@@ -410,6 +298,91 @@ namespace FarSync2
             SetDirectory(2);
         }
 
+        // узел рекурсивного процесса по чтению каталога
+        private void ReadOneDirectory(string path, bool isSource, int minBound, int maxBound)
+        {
+            const string nameProcedure = "Прочитать содержимое папки";
+
+            double lowBound, upBound; // нижняя и верхняя границы для текущей папки для вывода линии прогресса
+            double stepProgress; // шаг для вывода линии прогресса
+
+            if (Directory.Exists(path) == true)
+            {
+                uxlblInfoWorkName.Text = "Обрабатывается папка: " + path;
+                uxlblInfoWorkName.Refresh();
+
+                try
+                {
+                    string[] directories = Directory.GetDirectories(path);      // список файлов и директорий в обрабатываемой папке
+                    string[] files = Directory.GetFiles(path);                  // список файлов и директорий в обрабатываемой папке
+                    int amountOfElementses = directories.Count();    // количество файлов и директорий в обрабатываемой папке
+                    amountOfElementses += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
+                    if (amountOfElementses == 0)
+                        ShowProgress(maxBound, MaxProgress);  // в обрабатываемой директории нет ни файлов ни папок
+                    else
+                    {
+                        stepProgress = (maxBound - minBound) / amountOfElementses;    // размер одного шага для прогресса
+                        lowBound = minBound;
+                        upBound = minBound;
+                        if (files.Count() > 0)
+                        {
+                            foreach (string file in files)
+                            {
+                                FileInfo fileInf = new FileInfo(file);     // считать аттрибуты файла
+                                if (fileInf.Exists)
+                                    MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(fileInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
+                            }
+                            upBound = lowBound + stepProgress;
+                            ShowProgress((int)Math.Round(upBound), MaxProgress);  // прогресс в один шаг для всех файлов
+                        }
+
+                        foreach (string directory in directories)
+                        {
+                            DirectoryInfo dirInf = new DirectoryInfo(directory);    // считать аттрибуты директории
+                            if (dirInf.Exists)
+                            {
+                                MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(dirInf, isSource, LengthNodePath));         // добавить к списку новый элемент файловой директории
+                                // задать нижнюю и верхнюю границы для чтения одной вложенной папки
+                                lowBound = upBound;
+                                upBound = lowBound + stepProgress;
+                                ReadOneDirectory(directory, isSource, (int)Math.Round(lowBound), (int)Math.Round(upBound));    // рекурсивный вызов чтения вложенной директории
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    WriteLogMessage(nameProcedure, "Ошибка при чтении директории: " + path);
+                    MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(path, isSource, LengthNodePath));
+                }
+
+            }
+            else
+            {
+                WriteLogMessage(nameProcedure, "Не найдена папка: " + path);
+            }
+        }
+
+        // обновить дерево в конфигурационном файле для каталога источника или приёмника (запуск рекурсивного процесса)
+        private bool FillDirectory(string path, bool isSource)
+        {
+            bool result = false;
+            if (Directory.Exists(path) == true)
+            {
+                if (MainConfiguration.ListElementsFilesTree.Count > 0)
+                    MainConfiguration.ClearElementsFilesTree(isSource); // очистить сохраненные данные папки
+                LengthNodePath = path.Length;   // длина строки пути корневого каталога
+                ReadOneDirectory(path, isSource, 0, MaxProgress);   // запуск рекурсивной функции по чтению дерева директорий
+                // вывести информацию, что процесс завершён
+                uxlblInfoWorkName.Text = "Чтение папки: <" + path + "> окончено";
+                ShowProgress(0, 0);
+                result = true;
+            }
+            else
+                MessageBox.Show("Не найдена папка <" + path + ">", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return result;
+        }
+
         // прочитать директорию источник
         private void UxbtnSourcePathRead_Click(object sender, EventArgs e)
         {
@@ -459,24 +432,37 @@ namespace FarSync2
 
                 if (saveFileDialog1.ShowDialog() == DialogResult.OK)
                 {
-                    using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName, false, System.Text.Encoding.Default))
+                    try
                     {
-                        uxlblInfoWorkName.Text = "Экспортируются данные ...";
-                        int curItem = 0;
-                        sw.WriteLine(MainConfiguration.ListElementsFilesTree[0].GetAsCSV(true));
-                        foreach (ElementFilesTree element in MainConfiguration.ListElementsFilesTree)
+                        using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName, false, System.Text.Encoding.Default))
                         {
-                            sw.WriteLine(element.GetAsCSV(false));
-                            curItem++;
-                            ShowProgress(curItem, MainConfiguration.ListElementsFilesTree.Count);
+                            uxlblInfoWorkName.Text = "Экспортируются данные ...";
+                            int curItem = 0;
+                            sw.WriteLine(MainConfiguration.ListElementsFilesTree[0].GetAsCSV(true));
+                            foreach (ElementFilesTree element in MainConfiguration.ListElementsFilesTree)
+                            {
+                                sw.WriteLine(element.GetAsCSV(false));
+                                curItem++;
+                                ShowProgress(curItem, MainConfiguration.ListElementsFilesTree.Count);
+                            }
+                            uxlblInfoWorkName.Text = "Прочитанные данные экспортированы";
+                            ShowProgress(0, 0);
                         }
-                        uxlblInfoWorkName.Text = "Прочитанные данные экспортированы";
-                        ShowProgress(0, 0);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Ошибка при открытии файла: " + ex.Message);
                     }
                 }
             }
             else
                 MessageBox.Show("Директории ещё не прочитаны", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        // вернуть абсолютное значение (число по модулю)
+        private int Abs(int signValue)
+        {
+            return signValue > 0 ? signValue : -signValue;
         }
 
         // сортировать список элементов деревьев источника и приёмника
@@ -502,12 +488,6 @@ namespace FarSync2
             }
             uxlblInfoWorkName.Text = "Сортировка списка элементов закончена...";
             ShowProgress(0, 0);
-        }
-
-        // вернуть абсолютное значение (число по модулю)
-        private int Abs(int signValue)
-        {
-            return signValue > 0 ? signValue : -signValue;
         }
 
         // установить действие для каждого элемента
@@ -594,6 +574,8 @@ namespace FarSync2
                                 {
                                     // нет такого базового файла в папке приёмника. Создаём новый в папке переноса
                                     MainConfiguration.ListElementsFilesTree[indexSourceElement].Act = Operation.New;
+                                    MainConfiguration.ListElementsFilesTree[indexSourceElement].PathOut =
+                                    MainConfiguration.ListElementsFilesTree[indexSourceElement].Path; // относительный путь тот же самый
                                 }
                             }
                             else if (j <= ListDestinitionIndexes.AmountIndexes)
@@ -643,6 +625,215 @@ namespace FarSync2
             UpdateWindow();
         }
 
+        // удалить файл
+        private bool DeleteFile(string deleteFileFullName)
+        {
+            bool result = false;
+            FileInfo fileDelete = new FileInfo(deleteFileFullName);
+            if (fileDelete.Exists)
+            {
+                try
+                {
+                    fileDelete.Delete();
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Не удалось удалить файл <" + deleteFileFullName + "> : " + ex.Message);
+                }
+            }
+            else
+                MessageBox.Show("Не найден файл <" + deleteFileFullName + ">");
+            return result;
+        }
+
+        // копировать файл
+        private bool CopyMoveFile(string sourceFileFullName, string destinitionFileFullName, bool isCopy)
+        {
+            bool result = false;
+            FileInfo fileCopyMove = new FileInfo(sourceFileFullName);
+            if (fileCopyMove.Exists)
+            {
+                try
+                {
+                    if (isCopy)
+                        fileCopyMove.CopyTo(destinitionFileFullName, false);
+                    else
+                        fileCopyMove.MoveTo(destinitionFileFullName);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Не удалось " + (isCopy ? "скопировать" : "переместить") + " файл <" + sourceFileFullName + ">: " + ex.Message);
+                }
+            }
+            else
+                MessageBox.Show("Не найден файл <" + sourceFileFullName + ">");
+            return result;
+        }
+
+        // создать директорию
+        private bool CreateDirectory(DirectoryInfo dirRoot, string subPath)
+        {
+            bool result = false;
+            try
+            {
+                if (subPath == "")
+                    dirRoot = Directory.CreateDirectory(dirRoot.FullName);
+                else
+                    dirRoot.CreateSubdirectory(subPath.Trim('\\'));
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при создании директории: <" + subPath + ">\n" + ex.Message);
+            }
+            return result;
+        }
+
+        // удалить директорию. По умолчанию только директорию без вложений. Если true, то все директории с вложениями
+        private bool DeleteDirectory(DirectoryInfo dirRoot, bool isRecurse = false)
+        {
+            bool result = false;
+            if (dirRoot.Exists)
+            {
+                try
+                {
+                    dirRoot.Delete(isRecurse);  // удалять папку без вложений, для проверки
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при удалении директории: <" + dirRoot.FullName + ">\n" + ex.Message);
+                }
+            }
+            else
+                MessageBox.Show("Не найдена папка: <" + dirRoot.FullName + ">");
+            return result;
+        }
+
+        // выгрузить изменения в папку различий
+        private void UxbtnUpload_Click(object sender, EventArgs e)
+        {
+            bool flagOK = false;
+            DirectoryInfo dirDifference = new DirectoryInfo(MainConfiguration.PathDifference);  // папка различий
+            // удалить папку
+            if (!dirDifference.Exists)
+                flagOK = true;
+            else if (DeleteDirectory(dirDifference, true))
+                flagOK = true;
+            // создать новую папку различий
+            if (flagOK)
+                flagOK = CreateDirectory(dirDifference, "");
+            if (!flagOK)
+                MessageBox.Show("Отсутствует папка для копирования различий <" + MainConfiguration.PathDifference + ">");
+            else
+            {
+                DirectoryInfo dirSource = new DirectoryInfo(MainConfiguration.PathSource);  // папка исходная
+                if (dirSource.Exists)
+                {
+                    flagOK = true;
+                    foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                    {
+                        if (workElement.IsFile && workElement.Act == Operation.New)
+                        {
+                            // только для новых файлов
+                            if (CreateDirectory(dirDifference, workElement.Path))
+                            {
+                                if (CopyMoveFile(MainConfiguration.PathSource + workElement.Path + workElement.NameExt,
+                                                 MainConfiguration.PathDifference + workElement.PathOut + workElement.NameExt, true) == false)
+                                    flagOK = false;
+                            }
+                            else
+                                flagOK = false;
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Отсутствует папка источник <" + MainConfiguration.PathSource + ">");
+                    flagOK = false;
+                }
+            }
+            MainConfiguration.DoesDifferenceUpload = flagOK;
+            UpdateWindow();
+        }
+
+        // загрузить изменения и обновить папку приёмник
+        private void UxbtnDownload_Click(object sender, EventArgs e)
+        {
+            bool flagOK = true;
+            DirectoryInfo dirDestinition = new DirectoryInfo(MainConfiguration.PathDestination);  // папка различий
+            if (dirDestinition.Exists)
+            {
+                // создать новые папки
+                foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                {
+                    // действие "Новый" возможно только для источника
+                    if (!workElement.IsFile && workElement.IsSource && workElement.Act == Operation.New)
+                        flagOK = flagOK && CreateDirectory(dirDestinition, workElement.Path);
+                }
+                // удалить лишние файлы (не папки)
+                foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                {
+                    if (workElement.IsFile && workElement.Act == Operation.Delete)
+                        flagOK = flagOK && DeleteFile(MainConfiguration.PathDestination + workElement.Path + workElement.NameExt);
+                }
+                // переместить нужные файлы
+                foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                {
+                    // перемещать только элементы источника, т.к. приёмник дублирует действие
+                    if (workElement.IsSource && workElement.Act == Operation.Move)
+                        flagOK = flagOK && CopyMoveFile(MainConfiguration.PathDestination + workElement.PathOut + workElement.NameExt,
+                                     MainConfiguration.PathDestination + workElement.Path + workElement.NameExt, false);
+                }
+                // копировать нужные файлы из перемещённых
+                foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                {
+                    // действие "Копировать" возможно только для источника
+                    if (workElement.IsSource && workElement.Act == Operation.Copy)
+                        flagOK = flagOK && CopyMoveFile(MainConfiguration.PathDestination + workElement.PathOut + workElement.NameExt,
+                                     MainConfiguration.PathDestination + workElement.Path + workElement.NameExt, true);
+                }
+                // удалить лишние папки
+                DirectoryInfo dirDelete;
+                for (int i = MainConfiguration.ListElementsFilesTree.Count - 1; i >= 0; i--)
+                {
+                    if (MainConfiguration.ListElementsFilesTree[i].IsFile == false &&
+                        MainConfiguration.ListElementsFilesTree[i].Act == Operation.Delete)
+                    {
+                        dirDelete = new DirectoryInfo(MainConfiguration.PathDestination + MainConfiguration.ListElementsFilesTree[i].Path);
+                        flagOK = flagOK && DeleteDirectory(dirDelete);
+                    }
+                }
+                // добавить новые, перенесенные файлы
+                DirectoryInfo dirDifference = new DirectoryInfo(MainConfiguration.PathDifference);  // папка различий
+                if (dirDifference.Exists)
+                {
+                    // копировать новые файлы из папки переноса
+                    foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
+                    {
+                        // действие "Новый" возможно только для источника
+                        if (workElement.IsFile && workElement.IsSource && workElement.Act == Operation.New)
+                            flagOK = flagOK && CopyMoveFile(MainConfiguration.PathDifference + workElement.PathOut + workElement.NameExt,
+                                         MainConfiguration.PathDestination + workElement.Path + workElement.NameExt, true);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Отсутствует папка переноса <" + MainConfiguration.PathDifference + ">");
+                    flagOK = false;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Отсутствует папка для обновления <" + MainConfiguration.PathDestination + ">");
+                flagOK = false;
+            }
+            MainConfiguration.DoesDifferenceDownload = flagOK;
+            UpdateWindow();
+        }
+
         // выход из программы
         private void CheckExit(bool needExit)
         {
@@ -676,7 +867,7 @@ namespace FarSync2
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            CheckExit( false );
+            CheckExit(false);
         }
 
     }

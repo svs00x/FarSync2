@@ -126,8 +126,8 @@ namespace FarSync2
 
         public void ClearActElementsFilesTree() // очистить действия для элементов
         {
-            for (int i = 0; i < ListElementsFilesTree.Count - 1; i++)
-                ListElementsFilesTree[i].Act = Operation.Empty;
+            foreach (ElementFilesTree workElement in ListElementsFilesTree)
+                workElement.Act = Operation.Empty;
         }
 
         public void ClearElementsFilesTree(bool isClearDirection) // чистит элементы для соответствующего направления (источник или приемник)
