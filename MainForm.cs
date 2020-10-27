@@ -717,10 +717,10 @@ namespace FarSync2
         {
             bool flagOK = false;
             DirectoryInfo dirDifference = new DirectoryInfo(MainConfiguration.PathDifference);  // папка различий
-            // удалить папку
+            // удалить папку с различиями, чтобы не чистить
             if (!dirDifference.Exists)
                 flagOK = true;
-            else if (DeleteDirectory(dirDifference, true))
+            else if (DeleteDirectory(dirDifference, true))  // true - удалить всю папку, включая вложения
                 flagOK = true;
             // создать новую папку различий
             if (flagOK)
