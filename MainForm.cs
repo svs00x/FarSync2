@@ -17,7 +17,7 @@ namespace FarSync2
     public partial class MainForm : Form
     {
         public const string TextNoChoice = "Не выбран";
-        private const string PathDefault = "D:\\Test";    // Application.StartupPath
+        private const string PathDefault = @"D:\Test";    // Application.StartupPath
         private const int MaxProgress = 100000; // длина линии прогресса информационной панели
 
         private static WorkConfiguration MainConfiguration = new WorkConfiguration();    // основной класс конфигурации
@@ -35,14 +35,110 @@ namespace FarSync2
 
             // проверить ли есть в каталоге по умолчанию файл логов
             PathFileLog = PathDefault + "\\farlog.csv";
-            FileInfo fileInf = new FileInfo(PathFileLog);
-            HaveFileLog = (fileInf.Exists) ? true : false;
+            HaveFileLog = (File.Exists(PathFileLog)) ? true : false;
 
             UpdateWindow();
         }
 
-        // обновить все элементы диалога. Ничего больше
+        //**************************  БАЗОВЫЕ ФУНКЦИИ  ****************************************
+
+        private int Abs(int signValue)
+        // вернуть абсолютное значение (число по модулю)
+        {
+            return signValue > 0 ? signValue : -signValue;
+        }
+
+        private bool CreateDirectory(string directoryPath)
+        // создать директорию
+        {
+            bool result = true;
+            if (!Directory.Exists(directoryPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(directoryPath);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    ReportABag("Ошибка при создании директории: <" + directoryPath + ">\n" + ex.Message, 0);
+                    result = false;
+                }
+            }
+            return result;
+        }
+
+        private bool DeleteDirectory(string directoryPath, bool isRecurse = false)
+        // удалить директорию. По умолчанию только директорию без вложений. Если true, то все директории с вложениями
+        {
+            bool result = false;
+            if (Directory.Exists(directoryPath))
+            {
+                try
+                {
+                    Directory.Delete(directoryPath, isRecurse);  // удалять папку без вложений, для проверки
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    ReportABag("Ошибка при удалении директории: <" + directoryPath + ">\n" + ex.Message, 0);
+                }
+            }
+            else
+                ReportABag("Не найдена папка: <" + directoryPath + ">", 0);
+            return result;
+        }
+
+        private bool CopyMoveFile(string sourceFileFullName, string destinitionFileFullName, bool isCopy)
+        // копировать файл
+        {
+            bool result = false;
+            if (File.Exists(sourceFileFullName))
+            {
+                try
+                {
+                    // запрещается переписывание существующего файла, его надо было сначала удалить
+                    if (isCopy)
+                        File.Copy(sourceFileFullName, destinitionFileFullName);
+                    else
+                        File.Move(sourceFileFullName, destinitionFileFullName);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    ReportABag("Не удалось " + (isCopy ? "скопировать" : "переместить") + " файл <" + sourceFileFullName + ">: " + ex.Message, 0);
+                }
+            }
+            else
+                ReportABag("Не найден файл <" + sourceFileFullName + ">", 0);
+            return result;
+        }
+
+        private bool DeleteFile(string deleteFileFullName)
+        // удалить файл
+        {
+            bool result = false;
+            if (File.Exists(deleteFileFullName))
+            {
+                try
+                {
+                    File.Delete(deleteFileFullName);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    ReportABag("Не удалось удалить файл <" + deleteFileFullName + "> : " + ex.Message, 0, "Удаление файла");
+                }
+            }
+            else
+                ReportABag("Не найден файл <" + deleteFileFullName + ">", 0, "Удаление файла");
+            return result;
+        }
+
+        //******************************** РАБОТА С ЭКРАННОЙ ФОРМОЙ И ВЫВОД ИНФОРМАЦИИ **********************************
+
         private void UpdateWindow()
+        // обновить все элементы диалога. Ничего больше
         {
             uxlblConfigFile.Text                = MainConfiguration.PathFileConfiguration;
             uxlblPathSource.Text                = MainConfiguration.PathSource;
@@ -61,77 +157,46 @@ namespace FarSync2
             uxbtnDifferenceDownload.ForeColor   = (MainConfiguration.DoesDifferenceDownload) ? SystemColors.ControlText : Color.Red;
 
             uxlblLogFile.Text = PathFileLog;
-            uxbtnLogFileShow.ForeColor = (HaveFileLog) ? Color.Blue : SystemColors.ControlText;
-            uxbtnLogFileDelete.ForeColor = (HaveFileLog) ? Color.Blue : SystemColors.ControlText;
+            uxbtnLogFileShow.ForeColor = (HaveFileLog) ? SystemColors.ControlText : Color.Red;
+            uxbtnLogFileDelete.ForeColor = (HaveFileLog) ? SystemColors.ControlText : Color.Red;
 
             //            Application.DoEvents(); // без этой строки не обновлялся прогресс бар
         }
 
-        // прочитать конфигурационный файл
-        private bool ReadConfiguration()
+        private void ReportABag(string logMessage, int directReport = 2, string logOperation = "")
+        // вывести или сохранить сообщение об ошибке. По умолчанию выводится на экран
+        // directReport = 1 - выводить в лог файл
+        // directReport = 2 - выводить сообщение на экран
+        // directReport = 0 - выводить как указано в пользовательской форме
         {
-            bool result = false;
-            MainConfiguration.Status = Statuses.DontRead;
-            BinaryFormatter formatter = new BinaryFormatter();
-            FileInfo fileInf = new FileInfo(MainConfiguration.PathFileConfiguration);
-            if (fileInf.Exists)
+            bool flagReportToLog = uxchkIsLog.Checked; // по умолчанию выводится как указал пользователь в форме
+            switch (directReport)
             {
-                using (FileStream fs = File.OpenRead(MainConfiguration.PathFileConfiguration))
-                {
-                    try
-                    {
-                        // считать сохранненый файл конфигурации
-                        MainConfiguration = (WorkConfiguration)formatter.Deserialize(fs);
-                        if (MainConfiguration.PathFileConfiguration == fileInf.FullName)
-                        {
-                            MainConfiguration.Status = Statuses.Save; // только что прочитан, сохранять не надо
-                        }
-                        else
-                        {
-                            // файл конфигурации был переименован и восстановилось старое имя файла
-                            MainConfiguration.PathFileConfiguration = fileInf.FullName;
-                            MainConfiguration.Status = Statuses.Change; // имя файла конфигурации поменялось. Нужно сохранение
-                        }
-                        result = true;
-                    }
-                    catch
-                    {
-                        MessageBox.Show("Файл конфигурации не загружен", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
+                case 1:
+                    flagReportToLog = true;
+                    break;
+                case 2:
+                    flagReportToLog = false;
+                    break;
             }
-            return result;
-        }
-
-        // сохранить конфигурационный файл
-        private bool SaveConfiguration()
-        {
-            bool result = false;
-            DeleteFile(MainConfiguration.PathFileConfiguration); // удалить файл конфигурации, не умеет уменьшать размер
-            using (FileStream fs = new FileStream(MainConfiguration.PathFileConfiguration, FileMode.OpenOrCreate))
+            string TextReport = "";
+            if (flagReportToLog)
             {
-                MainConfiguration.Status = Statuses.Save; // конфигурация сохранена
-                BinaryFormatter formatter = new BinaryFormatter();
-                formatter.Serialize(fs, MainConfiguration);      // сохранить в файл текущую конфигурацию
+                TextReport = string.Format("{0:dd.MM.yyy HH:mm:ss};{1};{2}\r\n", DateTime.Now, logOperation, logMessage);
+                File.AppendAllText(PathFileLog, TextReport, Encoding.GetEncoding("Windows-1251"));
+                HaveFileLog = true;
             }
-            FileInfo fileInf = new FileInfo(MainConfiguration.PathFileConfiguration);
-            if (fileInf.Exists)
-                result = true;
             else
-                MessageBox.Show("Не удалось сохранить конфигурацию.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return result;
+            {
+                if (logOperation != "")
+                    TextReport = "Процедура " + logOperation + "\n";
+                TextReport += logMessage;
+                MessageBox.Show(TextReport, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
-        // записать сообщение об ошибки в лог файл. Если лог файла нет, то создать его
-        private void WriteLogMessage(string logOperation, string logMessage)
-        {
-            string fullText = string.Format("{0:dd.MM.yyy HH:mm:ss};{1};{2}\r\n", DateTime.Now, logOperation, logMessage);
-            File.AppendAllText(PathFileLog, fullText, Encoding.GetEncoding("Windows-1251"));
-            HaveFileLog = true;
-        }
-
-        // обновить полосу прогресса и вывести текущую долю выполнения
         private void ShowProgress(int valCur, int valMax)
+        // обновить полосу прогресса и вывести текущую долю выполнения
         {
             uxproInfoProcent.Minimum = 0;
             if ((valMax > 0) && (valCur > 0))
@@ -152,8 +217,63 @@ namespace FarSync2
             Application.DoEvents(); // без этой строки не обновлялся прогресс бар
         }
 
-        // выбрать файл конфигурации. !!!!!!!!!!!!!!!! можно разложить предыдущий конфигурационный файл на путь и имя !!!!!!!!!!!!!
+        //******************************** РАБОТА С КОНФИГУРАЦИОННЫМ ФАЙЛОМ **********************************
+
+        private bool ReadConfiguration()
+        // прочитать конфигурационный файл
+        {
+            bool result = false;
+            string currentNameFileConfiguration = MainConfiguration.PathFileConfiguration;
+            MainConfiguration.Status = Statuses.DontRead;
+            BinaryFormatter formatter = new BinaryFormatter();
+            if ( File.Exists(MainConfiguration.PathFileConfiguration) )
+            {
+                using (FileStream fs = File.OpenRead(MainConfiguration.PathFileConfiguration))
+                {
+                    try
+                    {
+                        // считать сохранненый файл конфигурации
+                        MainConfiguration = (WorkConfiguration)formatter.Deserialize(fs);
+                        if (MainConfiguration.PathFileConfiguration == currentNameFileConfiguration)
+                            MainConfiguration.Status = Statuses.Save; // только что прочитан, сохранять не надо
+                        else
+                        {
+                            // файл конфигурации был переименован и восстановилось старое имя файла
+                            MainConfiguration.PathFileConfiguration = currentNameFileConfiguration;
+                            MainConfiguration.Status = Statuses.Change; // имя файла конфигурации поменялось. Нужно сохранение
+                        }
+                        result = true;
+                    }
+                    catch
+                    {
+                        ReportABag("Файл конфигурации не загружен");
+                    }
+                }
+            }
+            return result;
+        }
+
+        private bool SaveConfiguration()
+        // сохранить конфигурационный файл
+        {
+            bool result = false;
+            if (File.Exists(MainConfiguration.PathFileConfiguration))
+                DeleteFile(MainConfiguration.PathFileConfiguration); // удалить файл конфигурации, не умеет уменьшать размер
+            using (FileStream fs = new FileStream(MainConfiguration.PathFileConfiguration, FileMode.OpenOrCreate))
+            {
+                MainConfiguration.Status = Statuses.Save; // конфигурация сохранена
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(fs, MainConfiguration);      // сохранить в файл текущую конфигурацию
+            }
+            if (File.Exists(MainConfiguration.PathFileConfiguration))
+                result = true;
+            else
+                ReportABag("Не удалось сохранить конфигурацию.");
+            return result;
+        }
+
         private void UxbtnConfigFileOpen_Click(object sender, EventArgs e)
+        // выбрать файл конфигурации. !!!!!!!!!!!!!!!! можно разложить предыдущий конфигурационный файл на путь и имя !!!!!!!!!!!!!
         {
             openFileDialog1.Title = "Считать файл конфигурации";
             openFileDialog1.Filter = "config files (*.cfg)|*.cfg|All files (*.*)|*.*";
@@ -184,15 +304,15 @@ namespace FarSync2
             }
         }
 
-        // сохранить файл конфигурации
         private void UxbtnConfigFileSave_Click(object sender, EventArgs e)
+        // сохранить файл конфигурации
         {
             SaveConfiguration();
             UpdateWindow();
         }
 
-        // сохранить файл конфигурации с другим именем
         private void UxbtnConfigFileSaveAs_Click(object sender, EventArgs e)
+        // сохранить файл конфигурации с другим именем
         {
             saveFileDialog1.Title = "Сохранить файл конфигурации";
             saveFileDialog1.InitialDirectory = PathDefault;
@@ -211,95 +331,91 @@ namespace FarSync2
             }
         }
 
-        // просмотреть лог файл
+        //********************************** РАБОТА С ФАЙЛОМ ЛОГОВ ********************************
+
         private void UxbtnLogFileShow_Click(object sender, EventArgs e)
+        // просмотреть лог файл
         {
-            FileInfo fileInf = new FileInfo(PathFileLog);
-            if (fileInf.Exists)
-            {
+            if (File.Exists(MainConfiguration.PathFileConfiguration))
                 Process.Start(PathFileLog);
-            }
         }
 
-        // удалить лог файл
         private void UxbtnLogFileDelete_Click(object sender, EventArgs e)
+        // удалить лог файл
         {
-            bool success = DeleteFile(PathFileLog);
-            if (success)
+            if (DeleteFile(PathFileLog))
             {
                 HaveFileLog = false;
                 UpdateWindow();
             }
             else
-                MessageBox.Show("Файл логов не найден", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ReportABag("Файл логов не найден");
         }
 
-        // выбрать директорию для всех типов (источник, приемник, разница)
-        private void SetDirectory(int indexDirectory)
-        {
-            // 0 = source; 1 - destinition; 2 - difference
-            string [] oldPath = new string[3] {MainConfiguration.PathSource, MainConfiguration.PathDestination, MainConfiguration.PathDifference };
-            folderBrowserDialog1.SelectedPath = oldPath[indexDirectory];
+        //********************************** ВЫБРАТЬ КАТАЛОГИ ********************************
 
+        private string SetDirectory(string oldPath)
+        // выбрать директорию для всех типов (источник, приемник, разница)
+        {
+            folderBrowserDialog1.SelectedPath = oldPath;
+
+            string result = "";
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
-                if (oldPath[indexDirectory] != folderBrowserDialog1.SelectedPath)
+                if (folderBrowserDialog1.SelectedPath != oldPath)
                 {
-                    switch (indexDirectory)
-                    {
-                        case 0:
-                            MainConfiguration.PathSource = folderBrowserDialog1.SelectedPath;
-                            MainConfiguration.ReadPathSource = false;
-                            break;
-                        case 1:
-                            MainConfiguration.PathDestination = folderBrowserDialog1.SelectedPath;
-                            MainConfiguration.ReadPathDestination = false;
-                            break;
-                        case 2:
-                            MainConfiguration.PathDifference = folderBrowserDialog1.SelectedPath;
-                            break;
-                    }
+                    result = folderBrowserDialog1.SelectedPath;
                     MainConfiguration.Status = Statuses.Change;
                     MainConfiguration.DoesDifferenceFind = false;
                     MainConfiguration.DoesDifferenceDownload = false;
                     MainConfiguration.DoesDifferenceUpload = false;
                 }
-                switch (indexDirectory)
-                {
-                    case 0:
-                        MainConfiguration.HavePathSource = true;
-                        break;
-                    case 1:
-                        MainConfiguration.HavePathDestination = true;
-                        break;
-                    case 2:
-                        MainConfiguration.HavePathDifference = true;
-                        break;
-                }
+            }
+            return result;
+        }
+
+        private void UxbtnSourcePathSet_Click(object sender, EventArgs e)
+        // выбрать путь к источнику
+        {
+            string result = SetDirectory(MainConfiguration.PathSource);
+            if (result != "")
+            {
+                MainConfiguration.PathSource = result;
+                MainConfiguration.HavePathSource = true;
+                MainConfiguration.ReadPathSource = false;
                 UpdateWindow();
             }
         }
 
-        // выбрать путь к источнику
-        private void UxbtnSourcePathSet_Click(object sender, EventArgs e)
-        {
-            SetDirectory(0);
-        }
-
-        // выбрать путь к приемнику
         private void UxbtnDestinationPathSet_Click(object sender, EventArgs e)
+        // выбрать путь к приемнику
         {
-            SetDirectory(1);
+            string result = SetDirectory(MainConfiguration.PathDestination);
+            if (result != "")
+            {
+                MainConfiguration.PathDestination = result;
+                MainConfiguration.HavePathDestination = true;
+                MainConfiguration.ReadPathDestination = false;
+                UpdateWindow();
+            }
         }
 
-        // выбрать путь к разнице
         private void UxbtnDifferencePathSet_Click(object sender, EventArgs e)
+        // выбрать путь к разнице
         {
-            SetDirectory(2);
+            string result = SetDirectory(MainConfiguration.PathDifference);
+            if (result != "")
+            {
+                MainConfiguration.PathDifference = result;
+                MainConfiguration.HavePathDifference = true;
+                UpdateWindow();
+            }
         }
 
-        // узел рекурсивного процесса по чтению каталога
+        //******************************** ЧТЕНИЕ КАТАЛОГОВ **********************************
+
         private void ReadOneDirectory(string path, bool isSource, int minBound, int maxBound)
+        // узел рекурсивного процесса по чтению каталога
         {
             const string nameProcedure = "Прочитать содержимое папки";
 
@@ -311,10 +427,11 @@ namespace FarSync2
                 uxlblInfoWorkName.Text = "Обрабатывается папка: " + path;
                 uxlblInfoWorkName.Refresh();
 
+                // прочитать файлы и папки в обрабатываемой директории
                 try
                 {
-                    string[] directories = Directory.GetDirectories(path);      // список файлов и директорий в обрабатываемой папке
-                    string[] files = Directory.GetFiles(path);                  // список файлов и директорий в обрабатываемой папке
+                    string[] directories = Directory.GetDirectories(path);      // список директорий в обрабатываемой папке
+                    string[] files = Directory.GetFiles(path);                  // список файлов в обрабатываемой папке
                     int amountOfElementses = directories.Count();    // количество файлов и директорий в обрабатываемой папке
                     amountOfElementses += (files.Count() > 0) ? 1 : 0; // если файлы в папке есть, то добавляем ещё один элемент для прогресса чтения
                     if (amountOfElementses == 0)
@@ -352,22 +469,19 @@ namespace FarSync2
                 }
                 catch
                 {
-                    WriteLogMessage(nameProcedure, "Ошибка при чтении директории: " + path);
+                    ReportABag("Ошибка при чтении директории: " + path, 0, nameProcedure);
                     MainConfiguration.ListElementsFilesTree.Add(new ElementFilesTree(path, isSource, LengthNodePath));
                 }
-
             }
             else
-            {
-                WriteLogMessage(nameProcedure, "Не найдена папка: " + path);
-            }
+                ReportABag("Не найдена папка: " + path, 0, nameProcedure);
         }
 
-        // обновить дерево в конфигурационном файле для каталога источника или приёмника (запуск рекурсивного процесса)
         private bool FillDirectory(string path, bool isSource)
+        // обновить дерево в конфигурационном файле для каталога источника или приёмника (запуск рекурсивного процесса)
         {
             bool result = false;
-            if (Directory.Exists(path) == true)
+            if (Directory.Exists(path))
             {
                 if (MainConfiguration.ListElementsFilesTree.Count > 0)
                     MainConfiguration.ClearElementsFilesTree(isSource); // очистить сохраненные данные папки
@@ -379,19 +493,18 @@ namespace FarSync2
                 result = true;
             }
             else
-                MessageBox.Show("Не найдена папка <" + path + ">", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ReportABag("Не найдена папка <" + path + ">");
             return result;
         }
 
-        // прочитать директорию источник
         private void UxbtnSourcePathRead_Click(object sender, EventArgs e)
+        // прочитать директорию источник
         {
             if (MainConfiguration.HavePathSource == false)
                 UxbtnSourcePathSet_Click(sender, e);    // если путь источник не выбран, то попробовать его выбрать
             if (MainConfiguration.HavePathSource)
             {
-                bool isReadDirectory = FillDirectory(MainConfiguration.PathSource, true);
-                if (isReadDirectory)
+                if (FillDirectory(MainConfiguration.PathSource, true))
                 {
                     MainConfiguration.ReadPathSource = true;
                     MainConfiguration.Status = Statuses.Change;
@@ -400,15 +513,14 @@ namespace FarSync2
             }
         }
 
-        // прочитать директорию приёмник
         private void UxbtnDestinationPathRead_Click(object sender, EventArgs e)
+        // прочитать директорию приёмник
         {
             if (MainConfiguration.HavePathDestination == false)
                 UxbtnDestinationPathSet_Click(sender, e);   // если путь приемник не выбран, то попробовать его выбрать
             if (MainConfiguration.HavePathDestination)
             {
-                bool isReadDirectory = FillDirectory(MainConfiguration.PathDestination, false);
-                if (isReadDirectory)
+                if (FillDirectory(MainConfiguration.PathDestination, false))
                 {
                     MainConfiguration.ReadPathDestination = true;
                     MainConfiguration.Status = Statuses.Change;
@@ -417,56 +529,10 @@ namespace FarSync2
             }
         }
 
-        // экспортировать прочитанные каталоги в CSV файл для анализа
-        private void UxbtnExportCSV_Click(object sender, EventArgs e)
-        {
-            if (MainConfiguration.ListElementsFilesTree.Count > 0)
-            {
-                saveFileDialog1.Title = "Экспортировать данные в файл";
-                saveFileDialog1.InitialDirectory = PathDefault;
-                saveFileDialog1.FileName = "farsync.csv";
-                saveFileDialog1.Filter = "config files (*.csv)|*.csv|All files (*.*)|*.*";
-                saveFileDialog1.FilterIndex = 1;
-                saveFileDialog1.RestoreDirectory = true;
-                saveFileDialog1.OverwritePrompt = true;
+        //********************************** ОБРАБОТАТЬ И ПОКАЗАТЬ ДАННЫЕ ********************************
 
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName, false, System.Text.Encoding.Default))
-                        {
-                            uxlblInfoWorkName.Text = "Экспортируются данные ...";
-                            int curItem = 0;
-                            sw.WriteLine(MainConfiguration.ListElementsFilesTree[0].GetAsCSV(true));
-                            foreach (ElementFilesTree element in MainConfiguration.ListElementsFilesTree)
-                            {
-                                sw.WriteLine(element.GetAsCSV(false));
-                                curItem++;
-                                ShowProgress(curItem, MainConfiguration.ListElementsFilesTree.Count);
-                            }
-                            uxlblInfoWorkName.Text = "Прочитанные данные экспортированы";
-                            ShowProgress(0, 0);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Ошибка при открытии файла: " + ex.Message);
-                    }
-                }
-            }
-            else
-                MessageBox.Show("Директории ещё не прочитаны", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
-        // вернуть абсолютное значение (число по модулю)
-        private int Abs(int signValue)
-        {
-            return signValue > 0 ? signValue : -signValue;
-        }
-
-        // сортировать список элементов деревьев источника и приёмника
         private void SortElements()
+        // сортировать список элементов деревьев источника и приёмника
         {
             ElementFilesTree tempElement;
             int amountOfElements = MainConfiguration.ListElementsFilesTree.Count;
@@ -490,8 +556,8 @@ namespace FarSync2
             ShowProgress(0, 0);
         }
 
-        // установить действие для каждого элемента
         private void SetAction()
+        // установить действие для каждого элемента
         {
             int result; // результат сравнения
             bool isFile; // текущее сравнение файла или папки
@@ -614,123 +680,87 @@ namespace FarSync2
             ShowProgress(0, 0);
         }
 
-        // найти различия в директориях
         private void UxbtnDifferenceFind_Click(object sender, EventArgs e)
+        // найти различия в директориях
         {
-            SortElements();
-            MainConfiguration.ClearActElementsFilesTree();
-            SetAction();
+            MainConfiguration.ClearActElementsFilesTree();  // очистить действия для заполненных данных
+            SortElements();     // сортировать элементы данных
+            SetAction();        // установить действия для элементов данных
             MainConfiguration.DoesDifferenceFind = true;
             MainConfiguration.Status = Statuses.Change;
             UpdateWindow();
         }
 
-        // удалить файл
-        private bool DeleteFile(string deleteFileFullName)
+        private void UxbtnExportCSV_Click(object sender, EventArgs e)
+        // экспортировать прочитанные каталоги в CSV файл для анализа
         {
-            bool result = false;
-            FileInfo fileDelete = new FileInfo(deleteFileFullName);
-            if (fileDelete.Exists)
+            if (MainConfiguration.ListElementsFilesTree.Count > 0)
             {
-                try
+                saveFileDialog1.Title = "Экспортировать данные в файл";
+                saveFileDialog1.InitialDirectory = PathDefault;
+                saveFileDialog1.FileName = "farsync.csv";
+                saveFileDialog1.Filter = "config files (*.csv)|*.csv|All files (*.*)|*.*";
+                saveFileDialog1.FilterIndex = 1;
+                saveFileDialog1.RestoreDirectory = true;
+                saveFileDialog1.OverwritePrompt = true;
+
+                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
                 {
-                    fileDelete.Delete();
-                    result = true;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Не удалось удалить файл <" + deleteFileFullName + "> : " + ex.Message);
+                    try
+                    {
+                        using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName, false, System.Text.Encoding.Default))
+                        {
+                            uxlblInfoWorkName.Text = "Экспортируются данные ...";
+                            int curItem = 0;
+                            sw.WriteLine(MainConfiguration.ListElementsFilesTree[0].GetAsCSV(true));
+                            foreach (ElementFilesTree element in MainConfiguration.ListElementsFilesTree)
+                            {
+                                sw.WriteLine(element.GetAsCSV(false));
+                                curItem++;
+                                ShowProgress(curItem, MainConfiguration.ListElementsFilesTree.Count);
+                            }
+                            uxlblInfoWorkName.Text = "Прочитанные данные экспортированы";
+                            ShowProgress(0, 0);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ReportABag("Ошибка при открытии файла: " + ex.Message);
+                    }
                 }
             }
             else
-                MessageBox.Show("Не найден файл <" + deleteFileFullName + ">");
-            return result;
+                ReportABag("Директории ещё не прочитаны");
         }
 
-        // копировать файл
-        private bool CopyMoveFile(string sourceFileFullName, string destinitionFileFullName, bool isCopy)
-        {
-            bool result = false;
-            FileInfo fileCopyMove = new FileInfo(sourceFileFullName);
-            if (fileCopyMove.Exists)
-            {
-                try
-                {
-                    if (isCopy)
-                        fileCopyMove.CopyTo(destinitionFileFullName, false);
-                    else
-                        fileCopyMove.MoveTo(destinitionFileFullName);
-                    result = true;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Не удалось " + (isCopy ? "скопировать" : "переместить") + " файл <" + sourceFileFullName + ">: " + ex.Message);
-                }
-            }
-            else
-                MessageBox.Show("Не найден файл <" + sourceFileFullName + ">");
-            return result;
-        }
+        //********************************* РАБОТА С КАТАЛОГАМИ (ВЫГРУЗКА-ЗАГРУЗКА) *********************************
 
-        // создать директорию
-        private bool CreateDirectory(DirectoryInfo dirRoot, string subPath)
-        {
-            bool result = false;
-            try
-            {
-                if (subPath == "")
-                    dirRoot = Directory.CreateDirectory(dirRoot.FullName);
-                else
-                    dirRoot.CreateSubdirectory(subPath.Trim('\\'));
-                result = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Ошибка при создании директории: <" + subPath + ">\n" + ex.Message);
-            }
-            return result;
-        }
-
-        // удалить директорию. По умолчанию только директорию без вложений. Если true, то все директории с вложениями
-        private bool DeleteDirectory(DirectoryInfo dirRoot, bool isRecurse = false)
-        {
-            bool result = false;
-            if (dirRoot.Exists)
-            {
-                try
-                {
-                    dirRoot.Delete(isRecurse);  // удалять папку без вложений, для проверки
-                    result = true;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка при удалении директории: <" + dirRoot.FullName + ">\n" + ex.Message);
-                }
-            }
-            else
-                MessageBox.Show("Не найдена папка: <" + dirRoot.FullName + ">");
-            return result;
-        }
-
-        // выгрузить изменения в папку различий
         private void UxbtnUpload_Click(object sender, EventArgs e)
+        // выгрузить изменения в папку различий
         {
-            bool flagOK = false;
+            bool flagOK = true;
             DirectoryInfo dirDifference = new DirectoryInfo(MainConfiguration.PathDifference);  // папка различий
             // удалить папку с различиями, чтобы не чистить
-            if (!dirDifference.Exists)
-                flagOK = true;
-            else if (DeleteDirectory(dirDifference, true))  // true - удалить всю папку, включая вложения
-                flagOK = true;
+            if (Directory.Exists(MainConfiguration.PathDifference))
+                flagOK = DeleteDirectory(MainConfiguration.PathDifference, true);  // true - удалить всю папку, включая вложения
             // создать новую папку различий
             if (flagOK)
-                flagOK = CreateDirectory(dirDifference, "");
+                flagOK = CreateDirectory(MainConfiguration.PathDifference);
             if (!flagOK)
-                MessageBox.Show("Отсутствует папка для копирования различий <" + MainConfiguration.PathDifference + ">");
+            {
+                string textABag = "Отсутствует папка для копирования различий <";
+                if (Directory.Exists(MainConfiguration.PathDifference))
+                    textABag = "Нет полного доступа к папке для копирования различий <";
+                ReportABag(textABag + MainConfiguration.PathDifference + ">");
+            }
             else
             {
-                DirectoryInfo dirSource = new DirectoryInfo(MainConfiguration.PathSource);  // папка исходная
-                if (dirSource.Exists)
+                if (!Directory.Exists(MainConfiguration.PathSource))
+                {
+                    ReportABag("Отсутствует папка источник <" + MainConfiguration.PathSource + ">");
+                    flagOK = false;
+                }
+                else
                 {
                     flagOK = true;
                     foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
@@ -738,40 +768,31 @@ namespace FarSync2
                         if (workElement.IsFile && workElement.Act == Operation.New)
                         {
                             // только для новых файлов
-                            if (CreateDirectory(dirDifference, workElement.Path))
-                            {
-                                if (CopyMoveFile(MainConfiguration.PathSource + workElement.Path + workElement.NameExt,
-                                                 MainConfiguration.PathDifference + workElement.PathOut + workElement.NameExt, true) == false)
-                                    flagOK = false;
-                            }
+                            if (CreateDirectory(MainConfiguration.PathSource + workElement.Path))
+                                flagOK = flagOK && CopyMoveFile(MainConfiguration.PathSource + workElement.Path + workElement.NameExt,
+                                                            MainConfiguration.PathDifference + workElement.PathOut + workElement.NameExt, true);
                             else
                                 flagOK = false;
                         }
                     }
-                }
-                else
-                {
-                    MessageBox.Show("Отсутствует папка источник <" + MainConfiguration.PathSource + ">");
-                    flagOK = false;
                 }
             }
             MainConfiguration.DoesDifferenceUpload = flagOK;
             UpdateWindow();
         }
 
-        // загрузить изменения и обновить папку приёмник
         private void UxbtnDownload_Click(object sender, EventArgs e)
+        // загрузить изменения и обновить папку приёмник
         {
             bool flagOK = true;
-            DirectoryInfo dirDestinition = new DirectoryInfo(MainConfiguration.PathDestination);  // папка различий
-            if (dirDestinition.Exists)
+            if (Directory.Exists(MainConfiguration.PathDestination))
             {
                 // создать новые папки
                 foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
                 {
                     // действие "Новый" возможно только для источника
                     if (!workElement.IsFile && workElement.IsSource && workElement.Act == Operation.New)
-                        flagOK = flagOK && CreateDirectory(dirDestinition, workElement.Path);
+                        flagOK = flagOK && CreateDirectory(MainConfiguration.PathDestination + workElement.Path);
                 }
                 // удалить лишние файлы (не папки)
                 foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
@@ -796,19 +817,16 @@ namespace FarSync2
                                      MainConfiguration.PathDestination + workElement.Path + workElement.NameExt, true);
                 }
                 // удалить лишние папки
-                DirectoryInfo dirDelete;
                 for (int i = MainConfiguration.ListElementsFilesTree.Count - 1; i >= 0; i--)
                 {
                     if (MainConfiguration.ListElementsFilesTree[i].IsFile == false &&
                         MainConfiguration.ListElementsFilesTree[i].Act == Operation.Delete)
                     {
-                        dirDelete = new DirectoryInfo(MainConfiguration.PathDestination + MainConfiguration.ListElementsFilesTree[i].Path);
-                        flagOK = flagOK && DeleteDirectory(dirDelete);
+                        flagOK = flagOK && DeleteDirectory(MainConfiguration.PathDestination + MainConfiguration.ListElementsFilesTree[i].Path);
                     }
                 }
                 // добавить новые, перенесенные файлы
-                DirectoryInfo dirDifference = new DirectoryInfo(MainConfiguration.PathDifference);  // папка различий
-                if (dirDifference.Exists)
+                if (Directory.Exists(MainConfiguration.PathDifference))
                 {
                     // копировать новые файлы из папки переноса
                     foreach (ElementFilesTree workElement in MainConfiguration.ListElementsFilesTree)
@@ -821,21 +839,23 @@ namespace FarSync2
                 }
                 else
                 {
-                    MessageBox.Show("Отсутствует папка переноса <" + MainConfiguration.PathDifference + ">");
+                    ReportABag("Отсутствует папка переноса <" + MainConfiguration.PathDifference + ">");
                     flagOK = false;
                 }
             }
             else
             {
-                MessageBox.Show("Отсутствует папка для обновления <" + MainConfiguration.PathDestination + ">");
+                ReportABag("Отсутствует папка для обновления <" + MainConfiguration.PathDestination + ">");
                 flagOK = false;
             }
             MainConfiguration.DoesDifferenceDownload = flagOK;
             UpdateWindow();
         }
 
-        // выход из программы
+        //********************************* ЗАКРЫТИЕ ПРОГРАММЫ *********************************
+
         private void CheckExit(bool needExit)
+        // проверка, что конфигурация сохранена при выходе из программы
         {
             bool canExit = true;
             if (MainConfiguration.Status != Statuses.Save)
@@ -859,6 +879,7 @@ namespace FarSync2
         }
 
         private void UxbtnExit_Click(object sender, EventArgs e)
+        // выход по нажатию кнопки Выход
         {
             DialogResult result = MessageBox.Show("Хотите закончить программу?", "Вопрос", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
             if (result == DialogResult.Yes)
@@ -866,6 +887,7 @@ namespace FarSync2
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        // выход по закрытию главного окна приложения
         {
             CheckExit(false);
         }

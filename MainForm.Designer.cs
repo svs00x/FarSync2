@@ -63,6 +63,7 @@
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.uxchkIsLog = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -88,6 +89,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.uxchkIsLog);
             this.groupBox1.Controls.Add(this.uxlblLogFile);
             this.groupBox1.Controls.Add(this.uxlblConfigFile);
             this.groupBox1.Controls.Add(this.uxbtnConfigFileSaveAs);
@@ -391,6 +393,16 @@
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
+            // uxchkIsLog
+            // 
+            this.uxchkIsLog.AutoSize = true;
+            this.uxchkIsLog.Location = new System.Drawing.Point(260, 58);
+            this.uxchkIsLog.Name = "uxchkIsLog";
+            this.uxchkIsLog.Size = new System.Drawing.Size(74, 17);
+            this.uxchkIsLog.TabIndex = 3;
+            this.uxchkIsLog.Text = "Лог файл";
+            this.uxchkIsLog.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -450,6 +462,7 @@
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
         private System.Windows.Forms.Button uxbtnLogFileDelete;
+        private System.Windows.Forms.CheckBox uxchkIsLog;
     }
 }
 
